@@ -33,6 +33,11 @@
  * - Lucide React for icons
  * - Vite for build tooling
  * 
+ * Company Color Palette:
+ * - Primary Yellow: #ffe300
+ * - Bright Yellow: #ffff00
+ * - Teal: #00d097
+ * 
  * Copyright © 2024 Khalid Ahmad Alhajj. All rights reserved.
  * ============================================================================
  */
@@ -453,14 +458,14 @@ export default function ShiftScheduler() {
   const metrics = getShiftMetrics();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-yellow-50 to-teal-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
           <div className="flex items-start gap-4 mb-4">
-            <div className="p-3 bg-indigo-100 rounded-xl">
-              <Calendar className="w-8 h-8 text-indigo-600" />
+            <div className="p-3 rounded-xl" style={{ backgroundColor: '#ffe300' }}>
+              <Calendar className="w-8 h-8 text-gray-900" />
             </div>
             <div className="flex-1">
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
@@ -470,7 +475,7 @@ export default function ShiftScheduler() {
                 Intelligently assign shifts to riders with optimal capacity utilization and consecutive shift preferences
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Developed by <span className="font-semibold text-indigo-600">Khalid Ahmad Alhajj</span>
+                Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span>
               </p>
             </div>
           </div>
@@ -479,15 +484,18 @@ export default function ShiftScheduler() {
         {/* Input Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 bg-indigo-50 rounded-lg">
-              <Users className="w-5 h-5 text-indigo-600" />
+            <div className="p-2 rounded-lg" style={{ backgroundColor: '#ffe30020' }}>
+              <Users className="w-5 h-5" style={{ color: '#00d097' }} />
             </div>
             <h2 className="text-xl font-bold text-gray-900">Configuration</h2>
           </div>
 
           <div className="space-y-6">
-            {/* Total Riders Input - NOW TEXT TYPE */}
-            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-xl border border-indigo-100">
+            {/* Total Riders Input */}
+            <div className="p-6 rounded-xl border-2" style={{ 
+              background: 'linear-gradient(135deg, #ffe30010 0%, #00d09710 100%)',
+              borderColor: '#ffe300'
+            }}>
               <label htmlFor="totalRiders" className="block text-sm font-semibold text-gray-900 mb-2">
                 Total Number of Riders
               </label>
@@ -498,17 +506,23 @@ export default function ShiftScheduler() {
                 pattern="[0-9]*"
                 value={totalRiders}
                 onChange={(e) => handleTotalRidersChange(e.target.value)}
-                className="w-full px-4 py-3 text-lg border-2 border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                className="w-full px-4 py-3 text-lg border-2 rounded-lg focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: '#ffe300',
+                  outlineColor: '#00d097'
+                }}
                 placeholder="e.g., 42"
+                onFocus={(e) => e.target.style.borderColor = '#00d097'}
+                onBlur={(e) => e.target.style.borderColor = '#ffe300'}
               />
               <div className="mt-3 flex items-center gap-6 text-sm">
                 <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-indigo-600" />
+                  <Target className="w-4 h-4" style={{ color: '#00d097' }} />
                   <span className="text-gray-600">Minimum Required:</span>
                   <span className="font-bold text-gray-900">{getTotalTargetShifts() / SHIFTS_PER_RIDER || 0}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-green-600" />
+                  <Zap className="w-4 h-4" style={{ color: '#00d097' }} />
                   <span className="text-gray-600">Maximum Capacity:</span>
                   <span className="font-bold text-gray-900">{Math.floor(getTotalMaxShifts() / SHIFTS_PER_RIDER) || 0}</span>
                 </div>
@@ -518,8 +532,8 @@ export default function ShiftScheduler() {
             {/* Shift Requirements */}
             <div>
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <Clock className="w-5 h-5 text-blue-600" />
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#ffe30020' }}>
+                  <Clock className="w-5 h-5" style={{ color: '#00d097' }} />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900">Shift Requirements</h3>
               </div>
@@ -546,8 +560,17 @@ export default function ShiftScheduler() {
                           pattern="[0-9]*"
                           value={shifts[slot.key].target}
                           onChange={(e) => handleShiftChange(slot.key, 'target', e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full px-3 py-2 border-2 rounded-lg focus:ring-2 transition-all"
+                          style={{ borderColor: '#ffe300' }}
                           placeholder="Required"
+                          onFocus={(e) => {
+                            e.target.style.borderColor = '#00d097';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(0, 208, 151, 0.1)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = '#ffe300';
+                            e.target.style.boxShadow = 'none';
+                          }}
                         />
                       </div>
                       <div>
@@ -561,8 +584,17 @@ export default function ShiftScheduler() {
                           pattern="[0-9]*"
                           value={shifts[slot.key].max}
                           onChange={(e) => handleShiftChange(slot.key, 'max', e.target.value)}
-                          className="w-full px-3 py-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                          className="w-full px-3 py-2 border-2 rounded-lg focus:ring-2 transition-all"
+                          style={{ borderColor: '#00d097' }}
                           placeholder="Extra capacity"
+                          onFocus={(e) => {
+                            e.target.style.borderColor = '#ffe300';
+                            e.target.style.boxShadow = '0 0 0 3px rgba(255, 227, 0, 0.1)';
+                          }}
+                          onBlur={(e) => {
+                            e.target.style.borderColor = '#00d097';
+                            e.target.style.boxShadow = 'none';
+                          }}
                         />
                       </div>
                     </div>
@@ -574,7 +606,12 @@ export default function ShiftScheduler() {
             {/* Generate Button */}
             <button
               onClick={generateSchedule}
-              className="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              className="w-full text-gray-900 font-bold py-4 px-6 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+              style={{ 
+                background: 'linear-gradient(135deg, #ffe300 0%, #ffff00 100%)',
+              }}
+              onMouseEnter={(e) => e.target.style.background = 'linear-gradient(135deg, #ffff00 0%, #ffe300 100%)'}
+              onMouseLeave={(e) => e.target.style.background = 'linear-gradient(135deg, #ffe300 0%, #ffff00 100%)'}
             >
               <BarChart3 className="w-5 h-5" />
               Generate Optimal Schedule
@@ -595,12 +632,15 @@ export default function ShiftScheduler() {
           )}
 
           {success && (
-            <div className="mt-6 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+            <div className="mt-6 border-l-4 p-4 rounded-lg" style={{ 
+              backgroundColor: '#00d09710',
+              borderColor: '#00d097'
+            }}>
               <div className="flex items-start gap-3">
-                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#00d097' }} />
                 <div>
-                  <h4 className="font-semibold text-green-900 mb-1">Success</h4>
-                  <p className="text-green-700 text-sm">{success}</p>
+                  <h4 className="font-semibold text-gray-900 mb-1">Success</h4>
+                  <p className="text-gray-700 text-sm">{success}</p>
                 </div>
               </div>
             </div>
@@ -614,8 +654,8 @@ export default function ShiftScheduler() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-indigo-100 rounded-lg">
-                    <Users className="w-5 h-5 text-indigo-600" />
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: '#ffe30020' }}>
+                    <Users className="w-5 h-5" style={{ color: '#00d097' }} />
                   </div>
                   <h3 className="text-sm font-medium text-gray-600">Total Riders</h3>
                 </div>
@@ -627,8 +667,8 @@ export default function ShiftScheduler() {
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Zap className="w-5 h-5 text-green-600" />
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: '#00d09720' }}>
+                    <Zap className="w-5 h-5" style={{ color: '#00d097' }} />
                   </div>
                   <h3 className="text-sm font-medium text-gray-600">Consecutive Shifts</h3>
                 </div>
@@ -653,8 +693,8 @@ export default function ShiftScheduler() {
 
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <BarChart3 className="w-5 h-5 text-blue-600" />
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: '#ffe30020' }}>
+                    <BarChart3 className="w-5 h-5" style={{ color: '#00d097' }} />
                   </div>
                   <h3 className="text-sm font-medium text-gray-600">Total Shifts</h3>
                 </div>
@@ -669,14 +709,14 @@ export default function ShiftScheduler() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-50 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-purple-600" />
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: '#ffe30020' }}>
+                    <TrendingUp className="w-5 h-5" style={{ color: '#00d097' }} />
                   </div>
                   <h2 className="text-xl font-bold text-gray-900">Capacity Analysis by Time Slot</h2>
                 </div>
                 <div className="hidden sm:flex items-center gap-4 text-xs">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#00d097' }}></div>
                     <span className="text-gray-600">Target Met</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -684,7 +724,7 @@ export default function ShiftScheduler() {
                     <span className="text-gray-600">Under Target</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ffe300' }}></div>
                     <span className="text-gray-600">At Capacity</span>
                   </div>
                 </div>
@@ -715,12 +755,11 @@ export default function ShiftScheduler() {
                       </div>
                       <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                         <div 
-                          className={`h-full transition-all duration-500 ${
-                            shift.status === 'full' ? 'bg-blue-500' :
-                            shift.status === 'good' ? 'bg-green-500' :
-                            'bg-amber-500'
-                          }`}
-                          style={{ width: `${Math.min(shift.utilization, 100)}%` }}
+                          className="h-full transition-all duration-500"
+                          style={{ 
+                            width: `${Math.min(shift.utilization, 100)}%`,
+                            backgroundColor: shift.status === 'full' ? '#ffe300' : shift.status === 'good' ? '#00d097' : '#f59e0b'
+                          }}
                         ></div>
                       </div>
                     </div>
@@ -741,7 +780,7 @@ export default function ShiftScheduler() {
                       </div>
                       <div className="text-center p-3 bg-white rounded-lg">
                         <div className="text-xs text-gray-600 mb-1">Available</div>
-                        <div className={`text-lg font-bold ${shift.available > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                        <div className="text-lg font-bold" style={{ color: shift.available > 0 ? '#00d097' : '#9ca3af' }}>
                           {shift.available}
                         </div>
                       </div>
@@ -750,13 +789,19 @@ export default function ShiftScheduler() {
                     {/* Status Badge */}
                     <div className="mt-3 flex items-center gap-2">
                       {shift.atCapacity && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium" style={{
+                          backgroundColor: '#ffe30020',
+                          color: '#000'
+                        }}>
                           <Info className="w-3 h-3" />
                           At Maximum Capacity
                         </span>
                       )}
                       {shift.targetMet && !shift.atCapacity && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium" style={{
+                          backgroundColor: '#00d09720',
+                          color: '#000'
+                        }}>
                           <CheckCircle className="w-3 h-3" />
                           Target Met
                         </span>
@@ -777,14 +822,17 @@ export default function ShiftScheduler() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-indigo-50 rounded-lg">
-                    <Calendar className="w-5 h-5 text-indigo-600" />
+                  <div className="p-2 rounded-lg" style={{ backgroundColor: '#ffe30020' }}>
+                    <Calendar className="w-5 h-5" style={{ color: '#00d097' }} />
                   </div>
                   <h2 className="text-xl font-bold text-gray-900">Detailed Schedule</h2>
                 </div>
                 <button
                   onClick={downloadCSV}
-                  className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm hover:shadow-md"
+                  className="inline-flex items-center gap-2 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-sm hover:shadow-md"
+                  style={{ backgroundColor: '#00d097' }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#00b885'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#00d097'}
                 >
                   <Download className="w-4 h-4" />
                   Export CSV
@@ -812,8 +860,8 @@ export default function ShiftScheduler() {
                         <tr key={rider.riderId} className={`hover:bg-gray-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                           <td className="px-4 py-4">
                             <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                                <span className="text-xs font-semibold text-indigo-600">
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: '#ffe300' }}>
+                                <span className="text-xs font-semibold text-gray-900">
                                   {rider.riderId}
                                 </span>
                               </div>
@@ -839,20 +887,24 @@ export default function ShiftScheduler() {
                             </div>
                           </td>
                           <td className="px-4 py-4">
-                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                              rider.isExtra 
-                                ? 'bg-blue-100 text-blue-700' 
-                                : 'bg-purple-100 text-purple-700'
-                            }`}>
+                            <span 
+                              className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
+                              style={{
+                                backgroundColor: rider.isExtra ? '#00d09720' : '#ffe30020',
+                                color: '#000'
+                              }}
+                            >
                               {rider.isExtra ? 'Extra' : 'Required'}
                             </span>
                           </td>
                           <td className="px-4 py-4 text-center">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
-                              consecutive 
-                                ? 'bg-green-100 text-green-700' 
-                                : 'bg-amber-100 text-amber-700'
-                            }`}>
+                            <span 
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                              style={{
+                                backgroundColor: consecutive ? '#00d09720' : '#fef3c7',
+                                color: consecutive ? '#000' : '#92400e'
+                              }}
+                            >
                               {consecutive ? (
                                 <>
                                   <CheckCircle className="w-3 h-3" />
@@ -885,7 +937,7 @@ export default function ShiftScheduler() {
       <div className="mt-8 text-center pb-6">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
           <span className="text-sm text-gray-600">Developed by</span>
-          <span className="text-sm font-bold text-indigo-600">Khalid Ahmad Alhajj</span>
+          <span className="text-sm font-bold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span>
           <span className="text-xs text-gray-400">© 2025</span>
         </div>
       </div>
