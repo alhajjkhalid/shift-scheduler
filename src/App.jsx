@@ -1,3 +1,42 @@
+/**
+ * ============================================================================
+ * SHIFT SCHEDULER - Intelligent Rider Assignment System
+ * ============================================================================
+ * 
+ * Developer: Khalid Ahmad Alhajj
+ * Version: 1.0.0
+ * Last Updated: October 2024
+ * 
+ * Description:
+ * An intelligent shift scheduling application that automatically assigns riders
+ * to time slots while optimizing for capacity utilization and consecutive shift
+ * preferences. Uses a sophisticated waste-aware look-ahead algorithm to prevent
+ * capacity stranding and maximize efficiency.
+ * 
+ * Key Features:
+ * - Automatic rider-to-shift assignment
+ * - Optimal capacity utilization (100% efficiency)
+ * - Consecutive shift preference optimization
+ * - Real-time validation and error handling
+ * - Visual capacity analysis with progress bars
+ * - CSV export functionality
+ * - Responsive, professional UI design
+ * 
+ * Algorithm:
+ * Phase 1: Backtracking algorithm to meet minimum target requirements
+ * Phase 2: Waste-aware greedy algorithm with look-ahead simulation to
+ *          maximize capacity utilization without stranding slots
+ * 
+ * Technical Stack:
+ * - React 18+ with Hooks
+ * - Tailwind CSS for styling
+ * - Lucide React for icons
+ * - Vite for build tooling
+ * 
+ * Copyright © 2024 Khalid Ahmad Alhajj. All rights reserved.
+ * ============================================================================
+ */
+
 import React, { useState } from 'react';
 import { AlertCircle, CheckCircle, Calendar, Users, TrendingUp, Download, Clock, Target, Zap, BarChart3, AlertTriangle, Info } from 'lucide-react';
 
@@ -430,6 +469,9 @@ export default function ShiftScheduler() {
               <p className="text-gray-600 text-sm sm:text-base">
                 Intelligently assign shifts to riders with optimal capacity utilization and consecutive shift preferences
               </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Developed by <span className="font-semibold text-indigo-600">Khalid Ahmad Alhajj</span>
+              </p>
             </div>
           </div>
         </div>
@@ -837,6 +879,15 @@ export default function ShiftScheduler() {
             </div>
           </>
         )}
+      </div>
+
+      {/* Footer */}
+      <div className="mt-8 text-center pb-6">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
+          <span className="text-sm text-gray-600">Developed by</span>
+          <span className="text-sm font-bold text-indigo-600">Khalid Ahmad Alhajj</span>
+          <span className="text-xs text-gray-400">© 2025</span>
+        </div>
       </div>
     </div>
   );
