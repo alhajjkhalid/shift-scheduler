@@ -114,26 +114,32 @@ export default function ShiftScheduler() {
 
     const riders = parseInt(totalRiders);
     const shiftData = {};
-    
+
     for (const key of Object.keys(shifts)) {
       const targetInput = shifts[key].target;
       const maxInput = shifts[key].max;
-      
+
       const target = parseInt(targetInput) || 0;
       const maxParsed = parseInt(maxInput);
-      
+
       const max = (maxInput === '' || isNaN(maxParsed)) ? target : maxParsed;
-      
+
       if (maxInput !== '' && !isNaN(maxParsed) && maxParsed < target) {
         setError(`Maximum shifts (${maxParsed}) must be >= target shifts (${target}) for ${timeSlots.find(s => s.key === key).label}`);
         return;
       }
-      
+
       shiftData[key] = { target, max };
     }
 
     if (!riders || riders <= 0 || !Number.isInteger(riders)) {
       setError('Please enter a valid whole number of riders');
+      return;
+    }
+
+    // Performance guard: warn for very large numbers
+    if (riders > 10000) {
+      setError('Maximum 10,000 riders allowed for performance reasons. Please reduce the number.');
       return;
     }
 
@@ -159,50 +165,207 @@ export default function ShiftScheduler() {
     }
 
     const result = createSchedule(riders, shiftData);
-    
+
     if (result.success) {
       setSchedule(result.schedule);
       const actualRiders = result.schedule.length;
       const targetRiders = totalTargetShifts / SHIFTS_PER_RIDER;
-      
+
       let message;
       if (actualRiders < riders) {
         message = `⚠️ Partially scheduled: ${actualRiders} of ${riders} riders. ${riders - actualRiders} rider(s) could not be scheduled.`;
       } else {
         message = `🎉 Successfully scheduled all ${actualRiders} riders!`;
       }
-      
+
       message += ` ${result.consecutivePairs} rider(s) have consecutive shifts.`;
-      
+
       if (actualRiders >= targetRiders) {
         message += ' ✓ All targets met.';
       }
-      
+
       if (result.extraRiders > 0) {
         message += ` ${result.extraRiders} extra rider(s) scheduled.`;
       }
-      
+
+      // Add warning if capacity was stranded
+      if (result.warning) {
+        message += ` ${result.warning}`;
+      }
+
       setSuccess(message);
     } else {
       setError(result.error);
     }
   };
 
+  // ============================================================================
+  // VALIDATION HELPER FUNCTIONS
+  // ============================================================================
+
+  const getValidPartners = (slot) => {
+    const allPairs = [
+      ['slot1', 'slot2'],
+      ['slot2', 'slot3'],
+      ['slot3', 'slot4'],
+      ['slot4', 'slot5'],
+      ['slot5', 'slot1'],
+      ['slot1', 'slot3'],
+      ['slot1', 'slot4'],
+      ['slot2', 'slot4'],
+      ['slot2', 'slot5'],
+      ['slot3', 'slot5'],
+    ];
+
+    const partners = new Set();
+    for (const [s1, s2] of allPairs) {
+      if (s1 === slot) partners.add(s2);
+      if (s2 === slot) partners.add(s1);
+    }
+    return Array.from(partners);
+  };
+
+  const validatePairingFeasibility = (shiftData) => {
+    const targets = {};
+    Object.keys(shiftData).forEach(key => {
+      targets[key] = shiftData[key].target;
+    });
+
+    const totalTargets = Object.values(targets).reduce((sum, v) => sum + v, 0);
+
+    // Check 1: Each shift must be pairable with available partners
+    for (const shift in targets) {
+      if (targets[shift] > 0) {
+        const partners = getValidPartners(shift);
+        const partnerCapacity = partners.reduce((sum, p) => sum + targets[p], 0);
+
+        if (targets[shift] > partnerCapacity) {
+          const slot = timeSlots.find(s => s.key === shift);
+          return {
+            valid: false,
+            error: `${slot?.label || shift} needs ${targets[shift]} riders but can only pair with ${partnerCapacity} riders from other shifts. Reduce ${slot?.label || shift} target or increase partner shift targets.`
+          };
+        }
+      }
+    }
+
+    // Check 2: Hall's Marriage Theorem - verify perfect matching exists
+    // For each subset of shifts, the neighborhood must be large enough
+    const shifts = Object.keys(targets).filter(s => targets[s] > 0);
+
+    // Check all non-empty subsets (this is feasible for 5 shifts = 31 subsets)
+    for (let mask = 1; mask < (1 << shifts.length); mask++) {
+      const subset = [];
+      let subsetDemand = 0;
+
+      for (let i = 0; i < shifts.length; i++) {
+        if (mask & (1 << i)) {
+          subset.push(shifts[i]);
+          subsetDemand += targets[shifts[i]];
+        }
+      }
+
+      // Find all shifts that can pair with this subset
+      const neighbors = new Set();
+      for (const shift of subset) {
+        const partners = getValidPartners(shift);
+        partners.forEach(p => neighbors.add(p));
+      }
+
+      // Calculate total capacity of neighbors
+      let neighborCapacity = 0;
+      neighbors.forEach(n => {
+        neighborCapacity += targets[n] || 0;
+      });
+
+      // Hall's condition: |N(S)| >= |S| in terms of demand
+      if (subsetDemand > neighborCapacity) {
+        return {
+          valid: false,
+          error: `Configuration creates impossible pairing: ${subset.map(s => timeSlots.find(t => t.key === s)?.label).join(', ')} need ${subsetDemand} shifts but neighbors only provide ${neighborCapacity}. This configuration cannot be scheduled.`
+        };
+      }
+    }
+
+    return { valid: true };
+  };
+
+  const detectStrandedCapacity = (shiftData, numRiders) => {
+    const maxCapacity = {};
+    Object.keys(shiftData).forEach(key => {
+      maxCapacity[key] = shiftData[key].max;
+    });
+
+    const totalMaxShifts = Object.values(maxCapacity).reduce((sum, v) => sum + v, 0);
+    const totalNeededShifts = numRiders * SHIFTS_PER_RIDER;
+
+    // Simulate if we can actually use all the capacity
+    for (const shift in maxCapacity) {
+      if (maxCapacity[shift] > 0) {
+        const partners = getValidPartners(shift);
+        const partnerCapacity = partners.reduce((sum, p) => sum + maxCapacity[p], 0);
+
+        if (maxCapacity[shift] > partnerCapacity) {
+          const slot = timeSlots.find(s => s.key === shift);
+          const stranded = maxCapacity[shift] - partnerCapacity;
+          return {
+            stranded: true,
+            shift: shift,
+            amount: stranded,
+            warning: `⚠️ ${slot?.label || shift} has ${stranded} slot(s) that cannot be paired. Maximum schedulable riders may be less than ${numRiders}.`
+          };
+        }
+      }
+    }
+
+    return { stranded: false };
+  };
+
+  // ============================================================================
+  // IMPROVED SCHEDULING ALGORITHM - CONSECUTIVE FIRST
+  // ============================================================================
+
   const createSchedule = (numRiders, shiftData) => {
-    const riderSchedule = Array(numRiders).fill(null).map((_, i) => ({
-      riderId: i + 1,
-      shifts: [],
-      isExtra: false
-    }));
+    // ============ PHASE 1: COMPREHENSIVE VALIDATION ============
 
     const totalTargetShifts = Object.values(shiftData).reduce((sum, s) => sum + s.target, 0);
+    const totalMaxShifts = Object.values(shiftData).reduce((sum, s) => sum + s.max, 0);
     const minRidersForTarget = totalTargetShifts / SHIFTS_PER_RIDER;
+
+    console.log('=== SCHEDULING START ===');
+    console.log('Total target shifts:', totalTargetShifts);
+    console.log('Min riders needed:', minRidersForTarget);
+    console.log('Riders to schedule:', numRiders);
+    console.log('Shift data:', shiftData);
+
+    // Validation 1: Check pairing feasibility for targets
+    const pairingCheck = validatePairingFeasibility(shiftData);
+    if (!pairingCheck.valid) {
+      console.log('Pairing check failed:', pairingCheck.error);
+      return {
+        success: false,
+        error: pairingCheck.error
+      };
+    }
+
+    // Validation 2: Check for stranded capacity (warning only)
+    const strandedCheck = detectStrandedCapacity(shiftData, numRiders);
+    let warning = null;
+    if (strandedCheck.stranded) {
+      warning = strandedCheck.warning;
+      console.log('Stranded capacity detected:', warning);
+    }
+
+    // ============ PHASE 2: TARGET ASSIGNMENT (EFFICIENT GREEDY WITH LOOK-AHEAD) ============
+
+    const riderSchedule = [];
+    let riderIndex = 0;
 
     const targetRemaining = {};
     Object.keys(shiftData).forEach(key => {
       targetRemaining[key] = shiftData[key].target;
     });
-    
+
     const consecutivePairs = [
       ['slot1', 'slot2'],
       ['slot2', 'slot3'],
@@ -210,7 +373,7 @@ export default function ShiftScheduler() {
       ['slot4', 'slot5'],
       ['slot5', 'slot1'],
     ];
-    
+
     const nonConsecutivePairs = [
       ['slot1', 'slot3'],
       ['slot1', 'slot4'],
@@ -218,86 +381,139 @@ export default function ShiftScheduler() {
       ['slot2', 'slot5'],
       ['slot3', 'slot5'],
     ];
-    
-    const backtrackTarget = (riderIndex) => {
-      if (riderIndex >= minRidersForTarget) {
-        const totalRemaining = Object.values(targetRemaining).reduce((a, b) => a + b, 0);
-        return totalRemaining === 0;
-      }
 
-      const rider = riderSchedule[riderIndex];
+    const allPairs = [...consecutivePairs, ...nonConsecutivePairs];
 
-      for (const [slot1, slot2] of consecutivePairs) {
-        if (targetRemaining[slot1] > 0 && targetRemaining[slot2] > 0) {
-          rider.shifts = [slot1, slot2];
-          targetRemaining[slot1]--;
-          targetRemaining[slot2]--;
-          
-          if (backtrackTarget(riderIndex + 1)) {
-            return true;
+    console.log('Phase 2: Efficient greedy target assignment');
+    console.log('Initial targets:', {...targetRemaining});
+
+    // Helper: Check if remaining shifts can still be paired
+    const canBePaired = (remaining) => {
+      for (const shift in remaining) {
+        if (remaining[shift] > 0) {
+          const partners = getValidPartners(shift);
+          const partnerCap = partners.reduce((sum, p) => sum + (remaining[p] || 0), 0);
+          if (remaining[shift] > partnerCap) {
+            return false;
           }
-          
-          rider.shifts = [];
-          targetRemaining[slot1]++;
-          targetRemaining[slot2]++;
         }
       }
-      
-      for (const [slot1, slot2] of nonConsecutivePairs) {
-        if (targetRemaining[slot1] > 0 && targetRemaining[slot2] > 0) {
-          rider.shifts = [slot1, slot2];
-          targetRemaining[slot1]--;
-          targetRemaining[slot2]--;
-          
-          if (backtrackTarget(riderIndex + 1)) {
-            return true;
-          }
-          
-          rider.shifts = [];
-          targetRemaining[slot1]++;
-          targetRemaining[slot2]++;
-        }
-      }
-      
-      return false;
+      return true;
     };
 
-    if (!backtrackTarget(0)) {
+    // Greedy algorithm: pick pairs that minimize future problems
+    const totalRidersNeeded = totalTargetShifts / SHIFTS_PER_RIDER;
+
+    for (let iteration = 0; iteration < totalRidersNeeded; iteration++) {
+      const remaining = Object.values(targetRemaining).reduce((a, b) => a + b, 0);
+      if (remaining === 0) break;
+
+      let bestPair = null;
+      let bestScore = -Infinity;
+      let isBestConsecutive = false;
+
+      // Try all possible pairs and score them
+      for (const [s1, s2] of allPairs) {
+        if (targetRemaining[s1] > 0 && targetRemaining[s2] > 0) {
+          // Simulate assignment
+          const tempRemaining = {...targetRemaining};
+          tempRemaining[s1]--;
+          tempRemaining[s2]--;
+
+          // Check if remaining can still be paired
+          if (!canBePaired(tempRemaining)) {
+            continue; // Skip pairs that would strand shifts
+          }
+
+          // Calculate score
+          let score = 0;
+
+          // Factor 1: Prefer consecutive pairs
+          const isConsec = consecutivePairs.some(([p1, p2]) =>
+            (s1 === p1 && s2 === p2) || (s1 === p2 && s2 === p1)
+          );
+          if (isConsec) score += 100;
+
+          // Factor 2: Prefer using up bottleneck shifts (ones with fewer partners)
+          const s1Partners = getValidPartners(s1);
+          const s2Partners = getValidPartners(s2);
+          const s1PartnerCap = s1Partners.reduce((sum, p) => sum + (tempRemaining[p] || 0), 0);
+          const s2PartnerCap = s2Partners.reduce((sum, p) => sum + (tempRemaining[p] || 0), 0);
+
+          const s1Ratio = tempRemaining[s1] > 0 ? tempRemaining[s1] / (s1PartnerCap + 1) : 0;
+          const s2Ratio = tempRemaining[s2] > 0 ? tempRemaining[s2] / (s2PartnerCap + 1) : 0;
+
+          score -= (s1Ratio + s2Ratio) * 50; // Prefer pairs that reduce bottleneck ratios
+
+          // Factor 3: Balance - prefer pairs where both shifts have similar remaining
+          const balance = 1 - Math.abs(targetRemaining[s1] - targetRemaining[s2]) /
+                         (targetRemaining[s1] + targetRemaining[s2]);
+          score += balance * 10;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestPair = [s1, s2];
+            isBestConsecutive = isConsec;
+          }
+        }
+      }
+
+      if (!bestPair) {
+        console.log('FAILED: No valid pair found');
+        console.log('Remaining:', targetRemaining);
+        return {
+          success: false,
+          error: 'Could not assign all target shifts. Configuration validated but greedy algorithm failed - please report this bug.'
+        };
+      }
+
+      // Assign the best pair
+      const [s1, s2] = bestPair;
+      riderSchedule.push({
+        riderId: ++riderIndex,
+        shifts: [s1, s2],
+        isExtra: false
+      });
+      targetRemaining[s1]--;
+      targetRemaining[s2]--;
+    }
+
+    console.log('Target assignment complete');
+    console.log('Total riders scheduled for targets:', riderIndex);
+    console.log('Final target remaining:', {...targetRemaining});
+
+    // Final validation
+    const remainingSum = Object.values(targetRemaining).reduce((a, b) => a + b, 0);
+    if (remainingSum > 0) {
+      console.log('FAILED: Targets not fully assigned');
       return {
         success: false,
-        error: 'Could not generate valid schedule. Please adjust shift requirements.'
+        error: `Could not assign all target shifts. ${remainingSum} shifts remaining unassigned.`
       };
     }
+
+    // ============ PHASE 3: EXTRA CAPACITY (CONSECUTIVE FIRST) ============
 
     const maxRemaining = {};
     Object.keys(shiftData).forEach(key => {
       maxRemaining[key] = shiftData[key].max - shiftData[key].target;
     });
 
-    const allPairs = [...consecutivePairs, ...nonConsecutivePairs];
-    
-    const getValidPartners = (slot) => {
-      const partners = new Set();
-      for (const [s1, s2] of allPairs) {
-        if (s1 === slot) partners.add(s2);
-        if (s2 === slot) partners.add(s1);
-      }
-      return Array.from(partners);
-    };
-    
-    let riderIndex = Math.ceil(minRidersForTarget);
     const extraRidersNeeded = numRiders - riderIndex;
-    
+
     for (let i = 0; i < extraRidersNeeded; i++) {
       let bestPair = null;
       let bestScore = -Infinity;
-      
-      for (const [s1, s2] of allPairs) {
+      let bestIsConsecutive = false;
+
+      // FIRST: Try to find best consecutive pair
+      for (const [s1, s2] of consecutivePairs) {
         if (maxRemaining[s1] > 0 && maxRemaining[s2] > 0) {
           const tempRemaining = {...maxRemaining};
           tempRemaining[s1]--;
           tempRemaining[s2]--;
-          
+
+          // Calculate waste score
           let potentialWaste = 0;
           Object.keys(tempRemaining).forEach(slot => {
             const partners = getValidPartners(slot);
@@ -306,56 +522,89 @@ export default function ShiftScheduler() {
               potentialWaste += (tempRemaining[slot] - availablePartnerCap);
             }
           });
-          
-          const isConsec = consecutivePairs.some(([p1, p2]) => 
-            (s1 === p1 && s2 === p2) || (s1 === p2 && s2 === p1)
-          );
-          
+
           const minRemaining = Math.min(maxRemaining[s1], maxRemaining[s2]);
-          
-          let score = 0;
-          score -= potentialWaste * 100;
-          score += (30 / (minRemaining + 1));
-          
           const balance = 1 - Math.abs(maxRemaining[s1] - maxRemaining[s2]) / (maxRemaining[s1] + maxRemaining[s2] + 1);
-          score += balance * 15;
-          
-          if (isConsec) {
-            score += 10;
-          }
-          
+
+          let score = 0;
+          score -= potentialWaste * 100; // Heavily penalize waste
+          score += (30 / (minRemaining + 1)); // Prefer using up smaller capacities
+          score += balance * 15; // Prefer balanced pairs
+          score += 50; // BONUS for consecutive
+
           if (score > bestScore) {
             bestScore = score;
             bestPair = [s1, s2];
+            bestIsConsecutive = true;
           }
         }
       }
-      
+
+      // SECOND: If no good consecutive pair, try non-consecutive
+      if (bestScore < 0 || bestPair === null) {
+        for (const [s1, s2] of nonConsecutivePairs) {
+          if (maxRemaining[s1] > 0 && maxRemaining[s2] > 0) {
+            const tempRemaining = {...maxRemaining};
+            tempRemaining[s1]--;
+            tempRemaining[s2]--;
+
+            let potentialWaste = 0;
+            Object.keys(tempRemaining).forEach(slot => {
+              const partners = getValidPartners(slot);
+              const availablePartnerCap = partners.reduce((sum, p) => sum + tempRemaining[p], 0);
+              if (tempRemaining[slot] > availablePartnerCap) {
+                potentialWaste += (tempRemaining[slot] - availablePartnerCap);
+              }
+            });
+
+            const minRemaining = Math.min(maxRemaining[s1], maxRemaining[s2]);
+            const balance = 1 - Math.abs(maxRemaining[s1] - maxRemaining[s2]) / (maxRemaining[s1] + maxRemaining[s2] + 1);
+
+            let score = 0;
+            score -= potentialWaste * 100;
+            score += (30 / (minRemaining + 1));
+            score += balance * 15;
+            // No consecutive bonus
+
+            if (score > bestScore) {
+              bestScore = score;
+              bestPair = [s1, s2];
+              bestIsConsecutive = false;
+            }
+          }
+        }
+      }
+
       if (bestPair) {
         const [s1, s2] = bestPair;
-        riderSchedule[riderIndex].shifts = [s1, s2];
-        riderSchedule[riderIndex].isExtra = true;
+        riderSchedule.push({
+          riderId: ++riderIndex,
+          shifts: [s1, s2],
+          isExtra: true
+        });
         maxRemaining[s1]--;
         maxRemaining[s2]--;
-        riderIndex++;
       } else {
-        break;
+        break; // No more valid pairs available
       }
     }
 
-    const finalSchedule = riderSchedule.filter(r => r.shifts.length === SHIFTS_PER_RIDER);
-    
-    const consecutivePairsCount = finalSchedule.filter(rider => 
+    // ============ PHASE 4: FINAL CALCULATIONS ============
+
+    const finalSchedule = riderSchedule.filter(r => r.shifts && r.shifts.length === SHIFTS_PER_RIDER);
+
+    const consecutivePairsCount = finalSchedule.filter(rider =>
       isConsecutive(rider.shifts[0], rider.shifts[1])
     ).length;
-    
+
     const extraRidersAssigned = finalSchedule.filter(r => r.isExtra).length;
 
     return {
       success: true,
       schedule: finalSchedule,
       consecutivePairs: consecutivePairsCount,
-      extraRiders: extraRidersAssigned
+      extraRiders: extraRidersAssigned,
+      warning: warning
     };
   };
 
@@ -419,12 +668,27 @@ export default function ShiftScheduler() {
       const target = parseInt(shifts[slot.key].target) || 0;
       const maxInput = parseInt(shifts[slot.key].max);
       const max = (shifts[slot.key].max === '' || isNaN(maxInput)) ? target : maxInput;
-      
-      const utilization = max > 0 ? (count / max) * 100 : 0;
+
+      // Calculate utilization as percentage of target (100% = target met)
+      // If count exceeds target, show as percentage of max capacity beyond 100%
+      let utilization;
+      if (target > 0) {
+        if (count <= target) {
+          utilization = (count / target) * 100;
+        } else {
+          // Beyond target: 100% + extra percentage based on remaining capacity
+          const extraCapacity = max - target;
+          const extraUsed = count - target;
+          utilization = 100 + (extraCapacity > 0 ? (extraUsed / extraCapacity) * 50 : 0); // Max 150%
+        }
+      } else {
+        utilization = 0;
+      }
+
       const targetMet = count >= target;
       const atCapacity = count >= max;
       const status = atCapacity ? 'full' : targetMet ? 'good' : 'under';
-      
+
       return {
         ...slot,
         count,
@@ -750,13 +1014,13 @@ export default function ShiftScheduler() {
                     {/* Progress Bar */}
                     <div className="mb-3">
                       <div className="flex items-center justify-between text-xs mb-2">
-                        <span className="text-gray-600">Capacity Utilization</span>
+                        <span className="text-gray-600">Target Progress (100% = Target Met)</span>
                         <span className="font-semibold text-gray-900">{shift.utilization.toFixed(0)}%</span>
                       </div>
                       <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full transition-all duration-500"
-                          style={{ 
+                          style={{
                             width: `${Math.min(shift.utilization, 100)}%`,
                             backgroundColor: shift.status === 'full' ? '#ffe300' : shift.status === 'good' ? '#00d097' : '#f59e0b'
                           }}
