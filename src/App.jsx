@@ -1,49 +1,21 @@
 /**
  * ============================================================================
- * SHIFT SCHEDULER - Intelligent Rider Assignment System
+ * SHIFT SCHEDULER - Enhanced Version with Detailed Validation
  * ============================================================================
  * 
  * Developer: Khalid Ahmad Alhajj
- * Version: 1.0.0
- * Last Updated: October 2024
+ * Version: 1.1.0 (Enhanced Validation)
+ * Last Updated: November 2024
  * 
- * Description:
- * An intelligent shift scheduling application that automatically assigns riders
- * to time slots while optimizing for capacity utilization and consecutive shift
- * preferences. Uses a sophisticated waste-aware look-ahead algorithm to prevent
- * capacity stranding and maximize efficiency.
+ * Enhancement: Added comprehensive validation with detailed error messages
+ * and diagnostic information to help users identify and fix configuration issues.
  * 
- * Key Features:
- * - Automatic rider-to-shift assignment
- * - Optimal capacity utilization (100% efficiency)
- * - Consecutive shift preference optimization
- * - Real-time validation and error handling
- * - Visual capacity analysis with progress bars
- * - CSV export functionality
- * - Responsive, professional UI design
- * 
- * Algorithm:
- * Phase 1: Backtracking algorithm to meet minimum target requirements
- * Phase 2: Waste-aware greedy algorithm with look-ahead simulation to
- *          maximize capacity utilization without stranding slots
- * 
- * Technical Stack:
- * - React 18+ with Hooks
- * - Tailwind CSS for styling
- * - Lucide React for icons
- * - Vite for build tooling
- * 
- * Company Color Palette:
- * - Primary Yellow: #ffe300
- * - Bright Yellow: #ffff00
- * - Teal: #00d097
- * 
- * Copyright © 2024 Khalid Ahmad Alhajj. All rights reserved.
+ * Note: Core algorithm remains unchanged - only validation enhanced
  * ============================================================================
  */
 
 import React, { useState } from 'react';
-import { AlertCircle, CheckCircle, Calendar, Users, TrendingUp, Download, Clock, Target, Zap, BarChart3, AlertTriangle, Info } from 'lucide-react';
+import { AlertCircle, CheckCircle, Calendar, Users, TrendingUp, Download, Clock, Target, Zap, BarChart3, AlertTriangle, Info, HelpCircle, XCircle } from 'lucide-react';
 
 export default function ShiftScheduler() {
   const [totalRiders, setTotalRiders] = useState('');
@@ -56,6 +28,7 @@ export default function ShiftScheduler() {
   });
   const [schedule, setSchedule] = useState(null);
   const [error, setError] = useState('');
+  const [validationDetails, setValidationDetails] = useState(null);
   const [success, setSuccess] = useState('');
 
   const SHIFTS_PER_RIDER = 2;
@@ -69,9 +42,8 @@ export default function ShiftScheduler() {
   ];
 
   const handleShiftChange = (slotKey, field, value) => {
-    // Only allow numbers and empty string
     if (value !== '' && !/^\d+$/.test(value)) {
-      return; // Don't update if not a valid number
+      return;
     }
     
     setShifts(prev => ({
@@ -79,17 +51,18 @@ export default function ShiftScheduler() {
       [slotKey]: { ...prev[slotKey], [field]: value }
     }));
     setError('');
+    setValidationDetails(null);
     setSuccess('');
   };
 
   const handleTotalRidersChange = (value) => {
-    // Only allow numbers and empty string
     if (value !== '' && !/^\d+$/.test(value)) {
-      return; // Don't update if not a valid number
+      return;
     }
     
     setTotalRiders(value);
     setError('');
+    setValidationDetails(null);
     setSuccess('');
   };
 
@@ -107,100 +80,8 @@ export default function ShiftScheduler() {
     );
   };
 
-  const generateSchedule = () => {
-    setError('');
-    setSuccess('');
-    setSchedule(null);
-
-    const riders = parseInt(totalRiders);
-    const shiftData = {};
-
-    for (const key of Object.keys(shifts)) {
-      const targetInput = shifts[key].target;
-      const maxInput = shifts[key].max;
-
-      const target = parseInt(targetInput) || 0;
-      const maxParsed = parseInt(maxInput);
-
-      const max = (maxInput === '' || isNaN(maxParsed)) ? target : maxParsed;
-
-      if (maxInput !== '' && !isNaN(maxParsed) && maxParsed < target) {
-        setError(`Maximum shifts (${maxParsed}) must be >= target shifts (${target}) for ${timeSlots.find(s => s.key === key).label}`);
-        return;
-      }
-
-      shiftData[key] = { target, max };
-    }
-
-    if (!riders || riders <= 0 || !Number.isInteger(riders)) {
-      setError('Please enter a valid whole number of riders');
-      return;
-    }
-
-    // Performance guard: warn for very large numbers
-    if (riders > 10000) {
-      setError('Maximum 10,000 riders allowed for performance reasons. Please reduce the number.');
-      return;
-    }
-
-    const totalTargetShifts = Object.values(shiftData).reduce((sum, s) => sum + s.target, 0);
-    const totalMaxShifts = Object.values(shiftData).reduce((sum, s) => sum + s.max, 0);
-
-    if (totalTargetShifts % SHIFTS_PER_RIDER !== 0) {
-      setError(`Total target shifts (${totalTargetShifts}) must be even (each rider needs ${SHIFTS_PER_RIDER} shifts).`);
-      return;
-    }
-
-    const minRequiredRiders = totalTargetShifts / SHIFTS_PER_RIDER;
-    const maxAllowedRiders = Math.floor(totalMaxShifts / SHIFTS_PER_RIDER);
-
-    if (riders < minRequiredRiders) {
-      setError(`Need at least ${minRequiredRiders} riders for targets (${totalTargetShifts} shifts ÷ ${SHIFTS_PER_RIDER})`);
-      return;
-    }
-
-    if (riders > maxAllowedRiders) {
-      setError(`Maximum ${maxAllowedRiders} riders allowed (${totalMaxShifts} shifts ÷ ${SHIFTS_PER_RIDER}). You entered ${riders}.`);
-      return;
-    }
-
-    const result = createSchedule(riders, shiftData);
-
-    if (result.success) {
-      setSchedule(result.schedule);
-      const actualRiders = result.schedule.length;
-      const targetRiders = totalTargetShifts / SHIFTS_PER_RIDER;
-
-      let message;
-      if (actualRiders < riders) {
-        message = `⚠️ Partially scheduled: ${actualRiders} of ${riders} riders. ${riders - actualRiders} rider(s) could not be scheduled.`;
-      } else {
-        message = `🎉 Successfully scheduled all ${actualRiders} riders!`;
-      }
-
-      message += ` ${result.consecutivePairs} rider(s) have consecutive shifts.`;
-
-      if (actualRiders >= targetRiders) {
-        message += ' ✓ All targets met.';
-      }
-
-      if (result.extraRiders > 0) {
-        message += ` ${result.extraRiders} extra rider(s) scheduled.`;
-      }
-
-      // Add warning if capacity was stranded
-      if (result.warning) {
-        message += ` ${result.warning}`;
-      }
-
-      setSuccess(message);
-    } else {
-      setError(result.error);
-    }
-  };
-
   // ============================================================================
-  // VALIDATION HELPER FUNCTIONS
+  // ENHANCED VALIDATION HELPER FUNCTIONS
   // ============================================================================
 
   const getValidPartners = (slot) => {
@@ -225,35 +106,184 @@ export default function ShiftScheduler() {
     return Array.from(partners);
   };
 
+  const getSlotLabel = (slotKey) => {
+    const slot = timeSlots.find(s => s.key === slotKey);
+    return slot ? `${slot.label} (${slot.time})` : slotKey;
+  };
+
+  const validateInputCompleteness = (riders, shiftData) => {
+    const issues = [];
+    
+    // Check if total riders is provided
+    if (!riders || riders <= 0) {
+      issues.push({
+        type: 'missing_input',
+        severity: 'error',
+        field: 'Total Riders',
+        message: 'Total number of riders is required',
+        suggestion: 'Please enter the number of riders you want to schedule'
+      });
+    }
+
+    // Check if all shift targets are provided
+    let missingTargets = [];
+    Object.keys(shiftData).forEach(key => {
+      if (!shiftData[key].target || shiftData[key].target === 0) {
+        missingTargets.push(getSlotLabel(key));
+      }
+    });
+
+    if (missingTargets.length > 0) {
+      issues.push({
+        type: 'missing_targets',
+        severity: 'error',
+        message: `Target shifts missing for ${missingTargets.length} slot(s)`,
+        details: missingTargets,
+        suggestion: 'Enter target values for all shifts (minimum required riders per shift)'
+      });
+    }
+
+    return issues;
+  };
+
+  const validateMaxCapacity = (shiftData) => {
+    const issues = [];
+    
+    Object.keys(shiftData).forEach(key => {
+      const target = shiftData[key].target;
+      const max = shiftData[key].max;
+      
+      if (max < target) {
+        issues.push({
+          type: 'invalid_max',
+          severity: 'error',
+          slot: key,
+          slotLabel: getSlotLabel(key),
+          message: `Maximum (${max}) is less than target (${target})`,
+          suggestion: `Set maximum to at least ${target} or leave blank to use target value`
+        });
+      }
+    });
+
+    return issues;
+  };
+
+  const validateEvenShifts = (totalTargetShifts) => {
+    if (totalTargetShifts % SHIFTS_PER_RIDER !== 0) {
+      const nearestEven = totalTargetShifts % 2 === 0 ? totalTargetShifts : totalTargetShifts + 1;
+      return {
+        type: 'odd_shifts',
+        severity: 'error',
+        message: `Total target shifts (${totalTargetShifts}) must be even`,
+        explanation: `Each rider needs exactly ${SHIFTS_PER_RIDER} shifts, so total shifts must be divisible by 2`,
+        current: totalTargetShifts,
+        needed: nearestEven,
+        difference: nearestEven - totalTargetShifts,
+        suggestion: `Add ${nearestEven - totalTargetShifts} more shift(s) to reach ${nearestEven} total shifts`
+      };
+    }
+    return null;
+  };
+
+  const validateRiderCapacity = (riders, totalTargetShifts, totalMaxShifts) => {
+    const issues = [];
+    const minRequiredRiders = totalTargetShifts / SHIFTS_PER_RIDER;
+    const maxAllowedRiders = Math.floor(totalMaxShifts / SHIFTS_PER_RIDER);
+
+    if (riders < minRequiredRiders) {
+      issues.push({
+        type: 'insufficient_riders',
+        severity: 'error',
+        message: `Not enough riders to meet target requirements`,
+        details: {
+          provided: riders,
+          required: minRequiredRiders,
+          shortage: minRequiredRiders - riders,
+          totalShifts: totalTargetShifts,
+          shiftsPerRider: SHIFTS_PER_RIDER
+        },
+        explanation: `You need ${totalTargetShifts} shifts total, and each rider covers ${SHIFTS_PER_RIDER} shifts`,
+        calculation: `${totalTargetShifts} shifts ÷ ${SHIFTS_PER_RIDER} shifts per rider = ${minRequiredRiders} riders needed`,
+        suggestion: `Increase riders to ${minRequiredRiders} or reduce target shifts by ${(minRequiredRiders - riders) * SHIFTS_PER_RIDER}`
+      });
+    }
+
+    if (riders > maxAllowedRiders) {
+      issues.push({
+        type: 'excess_riders',
+        severity: 'error',
+        message: `Too many riders for available capacity`,
+        details: {
+          provided: riders,
+          maximum: maxAllowedRiders,
+          excess: riders - maxAllowedRiders,
+          totalCapacity: totalMaxShifts,
+          shiftsPerRider: SHIFTS_PER_RIDER
+        },
+        explanation: `You have ${totalMaxShifts} maximum shift slots, and each rider needs ${SHIFTS_PER_RIDER} shifts`,
+        calculation: `${totalMaxShifts} shifts ÷ ${SHIFTS_PER_RIDER} shifts per rider = ${maxAllowedRiders} riders maximum`,
+        suggestion: `Reduce riders to ${maxAllowedRiders} or increase maximum capacity by ${(riders - maxAllowedRiders) * SHIFTS_PER_RIDER} shifts`
+      });
+    }
+
+    return issues;
+  };
+
   const validatePairingFeasibility = (shiftData) => {
     const targets = {};
     Object.keys(shiftData).forEach(key => {
       targets[key] = shiftData[key].target;
     });
 
-    const totalTargets = Object.values(targets).reduce((sum, v) => sum + v, 0);
+    const issues = [];
+    const pairingAnalysis = {};
 
     // Check 1: Each shift must be pairable with available partners
     for (const shift in targets) {
       if (targets[shift] > 0) {
         const partners = getValidPartners(shift);
         const partnerCapacity = partners.reduce((sum, p) => sum + targets[p], 0);
+        
+        pairingAnalysis[shift] = {
+          demand: targets[shift],
+          partners: partners,
+          partnerCapacity: partnerCapacity,
+          deficit: Math.max(0, targets[shift] - partnerCapacity),
+          canPair: targets[shift] <= partnerCapacity
+        };
 
         if (targets[shift] > partnerCapacity) {
+          const deficit = targets[shift] - partnerCapacity;
           const slot = timeSlots.find(s => s.key === shift);
-          return {
-            valid: false,
-            error: `${slot?.label || shift} needs ${targets[shift]} riders but can only pair with ${partnerCapacity} riders from other shifts. Reduce ${slot?.label || shift} target or increase partner shift targets.`
-          };
+          
+          issues.push({
+            type: 'pairing_impossible',
+            severity: 'error',
+            slot: shift,
+            slotLabel: getSlotLabel(shift),
+            message: `${slot?.label || shift} cannot pair all its riders`,
+            details: {
+              slotDemand: targets[shift],
+              availablePartners: partners.map(p => getSlotLabel(p)),
+              partnerCapacity: partnerCapacity,
+              deficit: deficit
+            },
+            explanation: `${slot?.label} needs ${targets[shift]} riders, but its partner slots only have ${partnerCapacity} capacity total`,
+            partnerBreakdown: partners.map(p => ({
+              slot: getSlotLabel(p),
+              capacity: targets[p]
+            })),
+            suggestion: deficit <= 5 
+              ? `Reduce ${slot?.label} target by ${deficit} OR increase partner capacity by ${deficit} total`
+              : `This is a major imbalance. Consider redistributing ${deficit} riders from ${slot?.label} to partner shifts`
+          });
         }
       }
     }
 
-    // Check 2: Hall's Marriage Theorem - verify perfect matching exists
-    // For each subset of shifts, the neighborhood must be large enough
+    // Check 2: Hall's Marriage Theorem for complex pairing issues
     const shifts = Object.keys(targets).filter(s => targets[s] > 0);
-
-    // Check all non-empty subsets (this is feasible for 5 shifts = 31 subsets)
+    
     for (let mask = 1; mask < (1 << shifts.length); mask++) {
       const subset = [];
       let subsetDemand = 0;
@@ -265,29 +295,36 @@ export default function ShiftScheduler() {
         }
       }
 
-      // Find all shifts that can pair with this subset
       const neighbors = new Set();
       for (const shift of subset) {
         const partners = getValidPartners(shift);
         partners.forEach(p => neighbors.add(p));
       }
 
-      // Calculate total capacity of neighbors
       let neighborCapacity = 0;
       neighbors.forEach(n => {
         neighborCapacity += targets[n] || 0;
       });
 
-      // Hall's condition: |N(S)| >= |S| in terms of demand
       if (subsetDemand > neighborCapacity) {
-        return {
-          valid: false,
-          error: `Configuration creates impossible pairing: ${subset.map(s => timeSlots.find(t => t.key === s)?.label).join(', ')} need ${subsetDemand} shifts but neighbors only provide ${neighborCapacity}. This configuration cannot be scheduled.`
-        };
+        issues.push({
+          type: 'complex_pairing_issue',
+          severity: 'error',
+          message: `Group of shifts cannot be paired (Hall's Theorem violation)`,
+          details: {
+            affectedShifts: subset.map(s => getSlotLabel(s)),
+            totalDemand: subsetDemand,
+            availableCapacity: neighborCapacity,
+            deficit: subsetDemand - neighborCapacity
+          },
+          explanation: `The shifts ${subset.map(s => getSlotLabel(s)).join(', ')} collectively need ${subsetDemand} pairings, but their partners only provide ${neighborCapacity} capacity`,
+          suggestion: `This is a complex constraint violation. Rebalance the configuration by reducing demand in these shifts or increasing capacity in their partner shifts`
+        });
+        break; // Only report first violation to avoid overwhelming user
       }
     }
 
-    return { valid: true };
+    return { issues, pairingAnalysis };
   };
 
   const detectStrandedCapacity = (shiftData, numRiders) => {
@@ -296,10 +333,8 @@ export default function ShiftScheduler() {
       maxCapacity[key] = shiftData[key].max;
     });
 
-    const totalMaxShifts = Object.values(maxCapacity).reduce((sum, v) => sum + v, 0);
-    const totalNeededShifts = numRiders * SHIFTS_PER_RIDER;
+    const warnings = [];
 
-    // Simulate if we can actually use all the capacity
     for (const shift in maxCapacity) {
       if (maxCapacity[shift] > 0) {
         const partners = getValidPartners(shift);
@@ -308,55 +343,227 @@ export default function ShiftScheduler() {
         if (maxCapacity[shift] > partnerCapacity) {
           const slot = timeSlots.find(s => s.key === shift);
           const stranded = maxCapacity[shift] - partnerCapacity;
-          return {
-            stranded: true,
-            shift: shift,
-            amount: stranded,
-            warning: `⚠️ ${slot?.label || shift} has ${stranded} slot(s) that cannot be paired. Maximum schedulable riders may be less than ${numRiders}.`
-          };
+          const usableCapacity = partnerCapacity;
+          
+          warnings.push({
+            type: 'stranded_capacity',
+            severity: 'warning',
+            slot: shift,
+            slotLabel: getSlotLabel(shift),
+            message: `${slot?.label} has capacity that cannot be fully utilized`,
+            details: {
+              maxCapacity: maxCapacity[shift],
+              usableCapacity: usableCapacity,
+              strandedCapacity: stranded,
+              utilizationRate: ((usableCapacity / maxCapacity[shift]) * 100).toFixed(1) + '%'
+            },
+            explanation: `${slot?.label} has maximum capacity of ${maxCapacity[shift]}, but partner slots only have ${partnerCapacity} total capacity`,
+            impact: `Up to ${stranded} rider(s) may not be schedulable even if requested`,
+            suggestion: `For better capacity utilization, reduce ${slot?.label} max to ${usableCapacity} OR increase partner capacities by ${stranded} total`
+          });
         }
       }
     }
 
-    return { stranded: false };
+    return warnings;
   };
 
-  // ============================================================================
-  // IMPROVED SCHEDULING ALGORITHM - CONSECUTIVE FIRST
-  // ============================================================================
+  const generateSchedule = () => {
+    setError('');
+    setSuccess('');
+    setSchedule(null);
+    setValidationDetails(null);
 
-  const createSchedule = (numRiders, shiftData) => {
-    // ============ PHASE 1: COMPREHENSIVE VALIDATION ============
+    const riders = parseInt(totalRiders);
+    const shiftData = {};
+
+    // Parse shift data
+    for (const key of Object.keys(shifts)) {
+      const targetInput = shifts[key].target;
+      const maxInput = shifts[key].max;
+
+      const target = parseInt(targetInput) || 0;
+      const maxParsed = parseInt(maxInput);
+      const max = (maxInput === '' || isNaN(maxParsed)) ? target : maxParsed;
+
+      shiftData[key] = { target, max };
+    }
+
+    // ============================================================================
+    // PHASE 1: COMPREHENSIVE VALIDATION WITH DETAILED DIAGNOSTICS
+    // ============================================================================
+
+    const validationResults = {
+      errors: [],
+      warnings: [],
+      info: []
+    };
+
+    // Step 1: Check input completeness
+    const completenessIssues = validateInputCompleteness(riders, shiftData);
+    validationResults.errors.push(...completenessIssues);
+
+    if (completenessIssues.length > 0) {
+      setError('Incomplete input - please fill in all required fields');
+      setValidationDetails(validationResults);
+      return;
+    }
+
+    // Step 2: Validate max >= target for each shift
+    const maxCapacityIssues = validateMaxCapacity(shiftData);
+    validationResults.errors.push(...maxCapacityIssues);
+
+    if (maxCapacityIssues.length > 0) {
+      setError('Invalid maximum capacity values detected');
+      setValidationDetails(validationResults);
+      return;
+    }
+
+    // Step 3: Performance guard
+    if (riders > 10000) {
+      validationResults.errors.push({
+        type: 'performance_limit',
+        severity: 'error',
+        message: 'Maximum 10,000 riders allowed for performance reasons',
+        details: { requested: riders, maximum: 10000 },
+        suggestion: 'Please reduce the number of riders to 10,000 or less'
+      });
+      setError('Too many riders requested - maximum is 10,000');
+      setValidationDetails(validationResults);
+      return;
+    }
 
     const totalTargetShifts = Object.values(shiftData).reduce((sum, s) => sum + s.target, 0);
     const totalMaxShifts = Object.values(shiftData).reduce((sum, s) => sum + s.max, 0);
+
+    // Step 4: Validate even number of shifts
+    const evenShiftsIssue = validateEvenShifts(totalTargetShifts);
+    if (evenShiftsIssue) {
+      validationResults.errors.push(evenShiftsIssue);
+      setError('Total target shifts must be even (each rider needs 2 shifts)');
+      setValidationDetails(validationResults);
+      return;
+    }
+
+    // Step 5: Validate rider capacity
+    const riderCapacityIssues = validateRiderCapacity(riders, totalTargetShifts, totalMaxShifts);
+    validationResults.errors.push(...riderCapacityIssues);
+
+    if (riderCapacityIssues.length > 0) {
+      setError('Rider count does not match shift capacity');
+      setValidationDetails(validationResults);
+      return;
+    }
+
+    // Step 6: Validate pairing feasibility
+    const { issues: pairingIssues, pairingAnalysis } = validatePairingFeasibility(shiftData);
+    validationResults.errors.push(...pairingIssues);
+
+    if (pairingIssues.length > 0) {
+      setError('Configuration has pairing impossibilities - cannot schedule');
+      setValidationDetails({ ...validationResults, pairingAnalysis });
+      return;
+    }
+
+    // Step 7: Check for stranded capacity (warnings only)
+    const strandedWarnings = detectStrandedCapacity(shiftData, riders);
+    validationResults.warnings.push(...strandedWarnings);
+
+    // Add info about the configuration
+    validationResults.info.push({
+      type: 'configuration_summary',
+      message: 'Configuration Summary',
+      details: {
+        totalRiders: riders,
+        totalTargetShifts: totalTargetShifts,
+        totalMaxShifts: totalMaxShifts,
+        minRidersNeeded: totalTargetShifts / SHIFTS_PER_RIDER,
+        maxRidersPossible: Math.floor(totalMaxShifts / SHIFTS_PER_RIDER),
+        extraCapacity: totalMaxShifts - totalTargetShifts,
+        extraCapacityPercent: (((totalMaxShifts - totalTargetShifts) / totalTargetShifts) * 100).toFixed(1) + '%'
+      }
+    });
+
+    // ============================================================================
+    // PHASE 2: RUN SCHEDULING ALGORITHM (UNCHANGED)
+    // ============================================================================
+
+    const result = createSchedule(riders, shiftData);
+
+    if (result.success) {
+      setSchedule(result.schedule);
+      const actualRiders = result.schedule.length;
+      const targetRiders = totalTargetShifts / SHIFTS_PER_RIDER;
+
+      let message;
+      if (actualRiders < riders) {
+        message = `⚠️ Partially scheduled: ${actualRiders} of ${riders} riders. ${riders - actualRiders} rider(s) could not be scheduled.`;
+        validationResults.warnings.push({
+          type: 'partial_scheduling',
+          severity: 'warning',
+          message: `Only ${actualRiders} of ${riders} riders were scheduled`,
+          details: {
+            requested: riders,
+            scheduled: actualRiders,
+            unscheduled: riders - actualRiders
+          },
+          explanation: 'Maximum capacity constraints prevented scheduling all riders',
+          suggestion: 'Increase maximum capacity in bottleneck shifts to accommodate more riders'
+        });
+      } else {
+        message = `🎉 Successfully scheduled all ${actualRiders} riders!`;
+      }
+
+      message += ` ${result.consecutivePairs} rider(s) have consecutive shifts.`;
+
+      if (actualRiders >= targetRiders) {
+        message += ' ✓ All targets met.';
+      }
+
+      if (result.extraRiders > 0) {
+        message += ` ${result.extraRiders} extra rider(s) scheduled.`;
+      }
+
+      if (result.warning) {
+        message += ` ${result.warning}`;
+      }
+
+      setSuccess(message);
+      if (validationResults.warnings.length > 0 || validationResults.info.length > 0) {
+        setValidationDetails(validationResults);
+      }
+    } else {
+      setError(result.error);
+      validationResults.errors.push({
+        type: 'algorithm_error',
+        severity: 'error',
+        message: result.error,
+        suggestion: 'This should not happen with valid input. Please report this as a bug.'
+      });
+      setValidationDetails(validationResults);
+    }
+  };
+
+  // ============================================================================
+  // ORIGINAL SCHEDULING ALGORITHM (UNCHANGED)
+  // ============================================================================
+
+  const canBePaired = (remaining) => {
+    for (const shift in remaining) {
+      if (remaining[shift] > 0) {
+        const partners = getValidPartners(shift);
+        const partnerCap = partners.reduce((sum, p) => sum + (remaining[p] || 0), 0);
+        if (remaining[shift] > partnerCap) {
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  const createSchedule = (numRiders, shiftData) => {
+    const totalTargetShifts = Object.values(shiftData).reduce((sum, s) => sum + s.target, 0);
     const minRidersForTarget = totalTargetShifts / SHIFTS_PER_RIDER;
-
-    console.log('=== SCHEDULING START ===');
-    console.log('Total target shifts:', totalTargetShifts);
-    console.log('Min riders needed:', minRidersForTarget);
-    console.log('Riders to schedule:', numRiders);
-    console.log('Shift data:', shiftData);
-
-    // Validation 1: Check pairing feasibility for targets
-    const pairingCheck = validatePairingFeasibility(shiftData);
-    if (!pairingCheck.valid) {
-      console.log('Pairing check failed:', pairingCheck.error);
-      return {
-        success: false,
-        error: pairingCheck.error
-      };
-    }
-
-    // Validation 2: Check for stranded capacity (warning only)
-    const strandedCheck = detectStrandedCapacity(shiftData, numRiders);
-    let warning = null;
-    if (strandedCheck.stranded) {
-      warning = strandedCheck.warning;
-      console.log('Stranded capacity detected:', warning);
-    }
-
-    // ============ PHASE 2: TARGET ASSIGNMENT (EFFICIENT GREEDY WITH LOOK-AHEAD) ============
 
     const riderSchedule = [];
     let riderIndex = 0;
@@ -384,24 +591,6 @@ export default function ShiftScheduler() {
 
     const allPairs = [...consecutivePairs, ...nonConsecutivePairs];
 
-    console.log('Phase 2: Efficient greedy target assignment');
-    console.log('Initial targets:', {...targetRemaining});
-
-    // Helper: Check if remaining shifts can still be paired
-    const canBePaired = (remaining) => {
-      for (const shift in remaining) {
-        if (remaining[shift] > 0) {
-          const partners = getValidPartners(shift);
-          const partnerCap = partners.reduce((sum, p) => sum + (remaining[p] || 0), 0);
-          if (remaining[shift] > partnerCap) {
-            return false;
-          }
-        }
-      }
-      return true;
-    };
-
-    // Greedy algorithm: pick pairs that minimize future problems
     const totalRidersNeeded = totalTargetShifts / SHIFTS_PER_RIDER;
 
     for (let iteration = 0; iteration < totalRidersNeeded; iteration++) {
@@ -410,31 +599,24 @@ export default function ShiftScheduler() {
 
       let bestPair = null;
       let bestScore = -Infinity;
-      let isBestConsecutive = false;
 
-      // Try all possible pairs and score them
       for (const [s1, s2] of allPairs) {
         if (targetRemaining[s1] > 0 && targetRemaining[s2] > 0) {
-          // Simulate assignment
           const tempRemaining = {...targetRemaining};
           tempRemaining[s1]--;
           tempRemaining[s2]--;
 
-          // Check if remaining can still be paired
           if (!canBePaired(tempRemaining)) {
-            continue; // Skip pairs that would strand shifts
+            continue;
           }
 
-          // Calculate score
           let score = 0;
 
-          // Factor 1: Prefer consecutive pairs
           const isConsec = consecutivePairs.some(([p1, p2]) =>
             (s1 === p1 && s2 === p2) || (s1 === p2 && s2 === p1)
           );
           if (isConsec) score += 100;
 
-          // Factor 2: Prefer using up bottleneck shifts (ones with fewer partners)
           const s1Partners = getValidPartners(s1);
           const s2Partners = getValidPartners(s2);
           const s1PartnerCap = s1Partners.reduce((sum, p) => sum + (tempRemaining[p] || 0), 0);
@@ -443,9 +625,8 @@ export default function ShiftScheduler() {
           const s1Ratio = tempRemaining[s1] > 0 ? tempRemaining[s1] / (s1PartnerCap + 1) : 0;
           const s2Ratio = tempRemaining[s2] > 0 ? tempRemaining[s2] / (s2PartnerCap + 1) : 0;
 
-          score -= (s1Ratio + s2Ratio) * 50; // Prefer pairs that reduce bottleneck ratios
+          score -= (s1Ratio + s2Ratio) * 50;
 
-          // Factor 3: Balance - prefer pairs where both shifts have similar remaining
           const balance = 1 - Math.abs(targetRemaining[s1] - targetRemaining[s2]) /
                          (targetRemaining[s1] + targetRemaining[s2]);
           score += balance * 10;
@@ -453,21 +634,17 @@ export default function ShiftScheduler() {
           if (score > bestScore) {
             bestScore = score;
             bestPair = [s1, s2];
-            isBestConsecutive = isConsec;
           }
         }
       }
 
       if (!bestPair) {
-        console.log('FAILED: No valid pair found');
-        console.log('Remaining:', targetRemaining);
         return {
           success: false,
           error: 'Could not assign all target shifts. Configuration validated but greedy algorithm failed - please report this bug.'
         };
       }
 
-      // Assign the best pair
       const [s1, s2] = bestPair;
       riderSchedule.push({
         riderId: ++riderIndex,
@@ -478,21 +655,13 @@ export default function ShiftScheduler() {
       targetRemaining[s2]--;
     }
 
-    console.log('Target assignment complete');
-    console.log('Total riders scheduled for targets:', riderIndex);
-    console.log('Final target remaining:', {...targetRemaining});
-
-    // Final validation
     const remainingSum = Object.values(targetRemaining).reduce((a, b) => a + b, 0);
     if (remainingSum > 0) {
-      console.log('FAILED: Targets not fully assigned');
       return {
         success: false,
         error: `Could not assign all target shifts. ${remainingSum} shifts remaining unassigned.`
       };
     }
-
-    // ============ PHASE 3: EXTRA CAPACITY (CONSECUTIVE FIRST) ============
 
     const maxRemaining = {};
     Object.keys(shiftData).forEach(key => {
@@ -504,16 +673,13 @@ export default function ShiftScheduler() {
     for (let i = 0; i < extraRidersNeeded; i++) {
       let bestPair = null;
       let bestScore = -Infinity;
-      let bestIsConsecutive = false;
 
-      // FIRST: Try to find best consecutive pair
       for (const [s1, s2] of consecutivePairs) {
         if (maxRemaining[s1] > 0 && maxRemaining[s2] > 0) {
           const tempRemaining = {...maxRemaining};
           tempRemaining[s1]--;
           tempRemaining[s2]--;
 
-          // Calculate waste score
           let potentialWaste = 0;
           Object.keys(tempRemaining).forEach(slot => {
             const partners = getValidPartners(slot);
@@ -527,20 +693,18 @@ export default function ShiftScheduler() {
           const balance = 1 - Math.abs(maxRemaining[s1] - maxRemaining[s2]) / (maxRemaining[s1] + maxRemaining[s2] + 1);
 
           let score = 0;
-          score -= potentialWaste * 100; // Heavily penalize waste
-          score += (30 / (minRemaining + 1)); // Prefer using up smaller capacities
-          score += balance * 15; // Prefer balanced pairs
-          score += 50; // BONUS for consecutive
+          score -= potentialWaste * 100;
+          score += (30 / (minRemaining + 1));
+          score += balance * 15;
+          score += 50;
 
           if (score > bestScore) {
             bestScore = score;
             bestPair = [s1, s2];
-            bestIsConsecutive = true;
           }
         }
       }
 
-      // SECOND: If no good consecutive pair, try non-consecutive
       if (bestScore < 0 || bestPair === null) {
         for (const [s1, s2] of nonConsecutivePairs) {
           if (maxRemaining[s1] > 0 && maxRemaining[s2] > 0) {
@@ -564,12 +728,10 @@ export default function ShiftScheduler() {
             score -= potentialWaste * 100;
             score += (30 / (minRemaining + 1));
             score += balance * 15;
-            // No consecutive bonus
 
             if (score > bestScore) {
               bestScore = score;
               bestPair = [s1, s2];
-              bestIsConsecutive = false;
             }
           }
         }
@@ -585,11 +747,9 @@ export default function ShiftScheduler() {
         maxRemaining[s1]--;
         maxRemaining[s2]--;
       } else {
-        break; // No more valid pairs available
+        break;
       }
     }
-
-    // ============ PHASE 4: FINAL CALCULATIONS ============
 
     const finalSchedule = riderSchedule.filter(r => r.shifts && r.shifts.length === SHIFTS_PER_RIDER);
 
@@ -604,7 +764,7 @@ export default function ShiftScheduler() {
       schedule: finalSchedule,
       consecutivePairs: consecutivePairsCount,
       extraRiders: extraRidersAssigned,
-      warning: warning
+      warning: null
     };
   };
 
@@ -619,11 +779,6 @@ export default function ShiftScheduler() {
       const max = (s.max === '' || isNaN(maxInput)) ? target : maxInput;
       return sum + max;
     }, 0);
-  };
-
-  const getSlotLabel = (slotKey) => {
-    const slot = timeSlots.find(s => s.key === slotKey);
-    return slot ? `${slot.label} ${slot.time}` : slotKey;
   };
 
   const downloadCSV = () => {
@@ -669,17 +824,14 @@ export default function ShiftScheduler() {
       const maxInput = parseInt(shifts[slot.key].max);
       const max = (shifts[slot.key].max === '' || isNaN(maxInput)) ? target : maxInput;
 
-      // Calculate utilization as percentage of target (100% = target met)
-      // If count exceeds target, show as percentage of max capacity beyond 100%
       let utilization;
       if (target > 0) {
         if (count <= target) {
           utilization = (count / target) * 100;
         } else {
-          // Beyond target: 100% + extra percentage based on remaining capacity
           const extraCapacity = max - target;
           const extraUsed = count - target;
-          utilization = 100 + (extraCapacity > 0 ? (extraUsed / extraCapacity) * 50 : 0); // Max 150%
+          utilization = 100 + (extraCapacity > 0 ? (extraUsed / extraCapacity) * 50 : 0);
         }
       } else {
         utilization = 0;
@@ -739,7 +891,7 @@ export default function ShiftScheduler() {
                 Intelligently assign shifts to riders with optimal capacity utilization and consecutive shift preferences
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span>
+                Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span> • v1.1.0 (Enhanced Validation)
               </p>
             </div>
           </div>
@@ -882,8 +1034,234 @@ export default function ShiftScheduler() {
             </button>
           </div>
 
-          {/* Messages */}
-          {error && (
+          {/* Enhanced Validation Details */}
+          {validationDetails && (
+            <div className="mt-6 space-y-4">
+              {/* Errors */}
+              {validationDetails.errors && validationDetails.errors.length > 0 && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-6 rounded-lg">
+                  <div className="flex items-start gap-3 mb-4">
+                    <XCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-bold text-red-900 text-lg mb-2">
+                        {validationDetails.errors.length} Error{validationDetails.errors.length > 1 ? 's' : ''} Found
+                      </h4>
+                      <p className="text-red-700 text-sm mb-4">
+                        Please fix the following issues before scheduling:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {validationDetails.errors.map((error, idx) => (
+                      <div key={idx} className="bg-white p-4 rounded-lg border border-red-200">
+                        <div className="flex items-start gap-3 mb-3">
+                          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-red-900 mb-1">
+                              {error.slotLabel && `${error.slotLabel}: `}{error.message}
+                            </h5>
+                            
+                            {error.explanation && (
+                              <p className="text-sm text-gray-700 mb-2 mt-2">
+                                <span className="font-medium">Why:</span> {error.explanation}
+                              </p>
+                            )}
+
+                            {error.details && (
+                              <div className="bg-gray-50 p-3 rounded mt-2 text-sm">
+                                <p className="font-medium text-gray-900 mb-2">Details:</p>
+                                {typeof error.details === 'object' && !Array.isArray(error.details) ? (
+                                  <ul className="space-y-1 text-gray-700">
+                                    {Object.entries(error.details).map(([key, value]) => (
+                                      <li key={key}>
+                                        <span className="font-medium">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</span> {typeof value === 'object' ? JSON.stringify(value) : value}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : Array.isArray(error.details) ? (
+                                  <ul className="list-disc list-inside text-gray-700">
+                                    {error.details.map((item, i) => (
+                                      <li key={i}>{item}</li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <p className="text-gray-700">{error.details}</p>
+                                )}
+                              </div>
+                            )}
+
+                            {error.calculation && (
+                              <div className="bg-blue-50 p-3 rounded mt-2 text-sm border border-blue-200">
+                                <p className="font-medium text-blue-900 mb-1">Calculation:</p>
+                                <p className="text-blue-800 font-mono">{error.calculation}</p>
+                              </div>
+                            )}
+
+                            {error.partnerBreakdown && (
+                              <div className="bg-gray-50 p-3 rounded mt-2 text-sm">
+                                <p className="font-medium text-gray-900 mb-2">Partner Slots Capacity:</p>
+                                <ul className="space-y-1">
+                                  {error.partnerBreakdown.map((partner, i) => (
+                                    <li key={i} className="text-gray-700">
+                                      • {partner.slot}: {partner.capacity} riders
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {error.suggestion && (
+                              <div className="mt-3 p-3 rounded" style={{ backgroundColor: '#ffe30020', borderLeft: '3px solid #ffe300' }}>
+                                <p className="text-sm">
+                                  <span className="font-semibold text-gray-900">💡 Solution: </span>
+                                  <span className="text-gray-700">{error.suggestion}</span>
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Warnings */}
+              {validationDetails.warnings && validationDetails.warnings.length > 0 && (
+                <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-lg">
+                  <div className="flex items-start gap-3 mb-4">
+                    <AlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-bold text-amber-900 text-lg mb-2">
+                        {validationDetails.warnings.length} Warning{validationDetails.warnings.length > 1 ? 's' : ''}
+                      </h4>
+                      <p className="text-amber-700 text-sm mb-4">
+                        Scheduling will work, but consider these optimizations:
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {validationDetails.warnings.map((warning, idx) => (
+                      <div key={idx} className="bg-white p-4 rounded-lg border border-amber-200">
+                        <div className="flex items-start gap-3">
+                          <HelpCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <h5 className="font-semibold text-amber-900 mb-1">
+                              {warning.slotLabel && `${warning.slotLabel}: `}{warning.message}
+                            </h5>
+                            
+                            {warning.explanation && (
+                              <p className="text-sm text-gray-700 mt-2">
+                                {warning.explanation}
+                              </p>
+                            )}
+
+                            {warning.details && (
+                              <div className="bg-gray-50 p-3 rounded mt-2 text-sm">
+                                <ul className="space-y-1 text-gray-700">
+                                  {Object.entries(warning.details).map(([key, value]) => (
+                                    <li key={key}>
+                                      <span className="font-medium">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</span> {value}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {warning.impact && (
+                              <p className="text-sm text-amber-700 mt-2">
+                                <span className="font-medium">Impact:</span> {warning.impact}
+                              </p>
+                            )}
+
+                            {warning.suggestion && (
+                              <div className="mt-3 p-3 rounded" style={{ backgroundColor: '#00d09720', borderLeft: '3px solid #00d097' }}>
+                                <p className="text-sm">
+                                  <span className="font-semibold text-gray-900">💡 Optimization: </span>
+                                  <span className="text-gray-700">{warning.suggestion}</span>
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Info */}
+              {validationDetails.info && validationDetails.info.length > 0 && !error && (
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Info className="w-6 h-6 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-bold text-blue-900 text-lg mb-3">Configuration Analysis</h4>
+                      
+                      {validationDetails.info.map((info, idx) => (
+                        <div key={idx}>
+                          {info.details && (
+                            <div className="bg-white p-4 rounded-lg border border-blue-200">
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                {Object.entries(info.details).map(([key, value]) => (
+                                  <div key={key}>
+                                    <span className="text-gray-600">{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:</span>
+                                    <span className="ml-2 font-semibold text-gray-900">{value}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pairing Analysis */}
+              {validationDetails.pairingAnalysis && (
+                <div className="bg-gray-50 border-l-4 border-gray-400 p-6 rounded-lg">
+                  <div className="flex items-start gap-3 mb-4">
+                    <BarChart3 className="w-6 h-6 text-gray-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="font-bold text-gray-900 text-lg mb-2">Pairing Analysis</h4>
+                      <p className="text-sm text-gray-600 mb-4">Detailed breakdown of shift pairing feasibility</p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {Object.entries(validationDetails.pairingAnalysis).map(([slot, analysis]) => (
+                      <div key={slot} className={`p-4 rounded-lg border ${analysis.canPair ? 'bg-white border-gray-200' : 'bg-red-50 border-red-300'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-semibold text-gray-900">{getSlotLabel(slot)}</span>
+                          {analysis.canPair ? (
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <XCircle className="w-5 h-5 text-red-600" />
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-700 space-y-1">
+                          <div>Demand: <span className="font-medium">{analysis.demand}</span></div>
+                          <div>Partner Capacity: <span className="font-medium">{analysis.partnerCapacity}</span></div>
+                          {analysis.deficit > 0 && (
+                            <div className="text-red-700 font-medium">
+                              ⚠️ Deficit: {analysis.deficit}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Simple Error Message (for users who don't need details) */}
+          {error && !validationDetails && (
             <div className="mt-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
@@ -895,6 +1273,7 @@ export default function ShiftScheduler() {
             </div>
           )}
 
+          {/* Success Message */}
           {success && (
             <div className="mt-6 border-l-4 p-4 rounded-lg" style={{ 
               backgroundColor: '#00d09710',
@@ -911,7 +1290,7 @@ export default function ShiftScheduler() {
           )}
         </div>
 
-        {/* Results Section */}
+        {/* Results Section (unchanged) */}
         {schedule && metrics && (
           <>
             {/* Overall Statistics */}
@@ -1011,7 +1390,6 @@ export default function ShiftScheduler() {
                       </div>
                     </div>
 
-                    {/* Progress Bar */}
                     <div className="mb-3">
                       <div className="flex items-center justify-between text-xs mb-2">
                         <span className="text-gray-600">Target Progress (100% = Target Met)</span>
@@ -1028,7 +1406,6 @@ export default function ShiftScheduler() {
                       </div>
                     </div>
 
-                    {/* Metrics Grid */}
                     <div className="grid grid-cols-4 gap-4">
                       <div className="text-center p-3 bg-white rounded-lg">
                         <div className="text-xs text-gray-600 mb-1">Target</div>
@@ -1050,7 +1427,6 @@ export default function ShiftScheduler() {
                       </div>
                     </div>
 
-                    {/* Status Badge */}
                     <div className="mt-3 flex items-center gap-2">
                       {shift.atCapacity && (
                         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium" style={{
@@ -1202,7 +1578,7 @@ export default function ShiftScheduler() {
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
           <span className="text-sm text-gray-600">Developed by</span>
           <span className="text-sm font-bold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span>
-          <span className="text-xs text-gray-400">© 2025</span>
+          <span className="text-xs text-gray-400">© 2025 • v1.1.0</span>
         </div>
       </div>
     </div>
