@@ -2,16 +2,22 @@
  * ============================================================================
  * SHIFT SCHEDULER - Enhanced Version with Detailed Validation
  * ============================================================================
- * 
+ *
  * Developer: Khalid Ahmad Alhajj
- * Version: 1.2.1 (Partial Scheduling Support)
+ * Version: 1.2.2 (Optimized Small Number Scheduling)
  * Last Updated: November 2024
- * 
- * Enhancements in v1.2.1:
+ *
+ * Enhancements in v1.2.2:
+ * - Optimized algorithm for small numbers (<20 riders)
+ * - Increased consecutive shift rate for small, imbalanced configurations
+ * - Adaptive scoring: prioritizes consecutive pairs more for small numbers
+ * - Preserved excellent performance for large numbers
+ *
+ * Previous enhancements:
  * - Allow scheduling with fewer riders than target requires
  * - Treat insufficient riders as warning instead of error
  * - Provide clear feedback about unmet targets
- * 
+ *
  * ============================================================================
  */
 
@@ -707,6 +713,11 @@ export default function ShiftScheduler() {
     // CHANGED: Only schedule up to the number of riders we actually have
     const ridersToScheduleForTarget = Math.min(numRiders, minRidersForTarget);
 
+    // OPTIMIZATION: Detect small numbers and adjust strategy accordingly
+    // For small numbers, we use a completely different approach that prioritizes
+    // consecutive pairs much more aggressively and pairs largest shifts first
+    const isSmallNumber = minRidersForTarget < 20;
+
     for (let iteration = 0; iteration < ridersToScheduleForTarget; iteration++) {
       const remaining = Object.values(targetRemaining).reduce((a, b) => a + b, 0);
       if (remaining === 0) break;
@@ -714,7 +725,10 @@ export default function ShiftScheduler() {
       let bestPair = null;
       let bestScore = -Infinity;
 
-      for (const [s1, s2] of allPairs) {
+      // For small numbers, try consecutive pairs FIRST with heavily weighted scoring
+      const pairsToTry = isSmallNumber ? [...consecutivePairs, ...nonConsecutivePairs] : allPairs;
+
+      for (const [s1, s2] of pairsToTry) {
         if (targetRemaining[s1] > 0 && targetRemaining[s2] > 0) {
           const tempRemaining = {...targetRemaining};
           tempRemaining[s1]--;
@@ -729,21 +743,40 @@ export default function ShiftScheduler() {
           const isConsec = consecutivePairs.some(([p1, p2]) =>
             (s1 === p1 && s2 === p2) || (s1 === p2 && s2 === p1)
           );
-          if (isConsec) score += 100;
 
-          const s1Partners = getValidPartners(s1);
-          const s2Partners = getValidPartners(s2);
-          const s1PartnerCap = s1Partners.reduce((sum, p) => sum + (tempRemaining[p] || 0), 0);
-          const s2PartnerCap = s2Partners.reduce((sum, p) => sum + (tempRemaining[p] || 0), 0);
+          if (isSmallNumber) {
+            // SMALL NUMBER STRATEGY: Massively prioritize consecutive pairs
+            if (isConsec) {
+              score += 1000; // Huge bonus for consecutive
+              // Add bonus for pairing larger shifts first (only for consecutive)
+              score += (targetRemaining[s1] + targetRemaining[s2]) * 10;
+            }
+            // Much lighter ratio penalty
+            const s1Partners = getValidPartners(s1);
+            const s2Partners = getValidPartners(s2);
+            const s1PartnerCap = s1Partners.reduce((sum, p) => sum + (tempRemaining[p] || 0), 0);
+            const s2PartnerCap = s2Partners.reduce((sum, p) => sum + (tempRemaining[p] || 0), 0);
+            const s1Ratio = tempRemaining[s1] > 0 ? tempRemaining[s1] / (s1PartnerCap + 1) : 0;
+            const s2Ratio = tempRemaining[s2] > 0 ? tempRemaining[s2] / (s2PartnerCap + 1) : 0;
+            score -= (s1Ratio + s2Ratio) * 5;
+          } else {
+            // LARGE NUMBER STRATEGY: Original balanced scoring
+            if (isConsec) score += 100;
 
-          const s1Ratio = tempRemaining[s1] > 0 ? tempRemaining[s1] / (s1PartnerCap + 1) : 0;
-          const s2Ratio = tempRemaining[s2] > 0 ? tempRemaining[s2] / (s2PartnerCap + 1) : 0;
+            const s1Partners = getValidPartners(s1);
+            const s2Partners = getValidPartners(s2);
+            const s1PartnerCap = s1Partners.reduce((sum, p) => sum + (tempRemaining[p] || 0), 0);
+            const s2PartnerCap = s2Partners.reduce((sum, p) => sum + (tempRemaining[p] || 0), 0);
 
-          score -= (s1Ratio + s2Ratio) * 50;
+            const s1Ratio = tempRemaining[s1] > 0 ? tempRemaining[s1] / (s1PartnerCap + 1) : 0;
+            const s2Ratio = tempRemaining[s2] > 0 ? tempRemaining[s2] / (s2PartnerCap + 1) : 0;
 
-          const balance = 1 - Math.abs(targetRemaining[s1] - targetRemaining[s2]) /
-                         (targetRemaining[s1] + targetRemaining[s2]);
-          score += balance * 10;
+            score -= (s1Ratio + s2Ratio) * 50;
+
+            const balance = 1 - Math.abs(targetRemaining[s1] - targetRemaining[s2]) /
+                           (targetRemaining[s1] + targetRemaining[s2]);
+            score += balance * 10;
+          }
 
           if (score > bestScore) {
             bestScore = score;
@@ -994,7 +1027,7 @@ export default function ShiftScheduler() {
                 Intelligently assign shifts to riders with optimal capacity utilization and consecutive shift preferences
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span> • v1.2.1
+                Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span> • v1.2.2
               </p>
             </div>
           </div>
@@ -1711,7 +1744,7 @@ export default function ShiftScheduler() {
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
           <span className="text-sm text-gray-600">Developed by</span>
           <span className="text-sm font-bold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span>
-          <span className="text-xs text-gray-400">© 2025 • v1.2.1</span>
+          <span className="text-xs text-gray-400">© 2025 • v1.2.2</span>
         </div>
       </div>
     </div>
