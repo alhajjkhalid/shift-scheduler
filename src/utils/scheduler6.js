@@ -188,10 +188,6 @@ export const createSchedule6 = (numRiders, shiftData) => {
   // Detect small numbers and adjust strategy
   const isSmallNumber = minRidersForTarget < 15;
 
-  // EDGE CASE: Detect when we have fewer riders than needed
-  // In this case, we need to ensure gaps are evenly distributed across time slots
-  const isUnderStaffed = numRiders < minRidersForTarget;
-
   for (let iteration = 0; iteration < ridersToScheduleForTarget; iteration++) {
     const remaining = Object.values(targetRemaining).reduce((a, b) => a + b, 0);
     if (remaining < SHIFTS_PER_RIDER) break;
@@ -255,27 +251,6 @@ export const createSchedule6 = (numRiders, shiftData) => {
           const min = Math.min(...values);
           const balance = 1 - (max - min) / (max + 1);
           score += balance * 20;
-        }
-
-        // EDGE CASE: When under-staffed, prioritize even gap distribution
-        // This ensures gaps (target - assigned) are approximately evenly distributed
-        if (isUnderStaffed) {
-          // Calculate the ideal remaining per slot for perfectly even gaps
-          const remainingValues = Object.values(tempRemaining);
-          const totalRemaining = remainingValues.reduce((a, b) => a + b, 0);
-          const numSlots = remainingValues.length;
-          const idealRemainingPerSlot = totalRemaining / numSlots;
-
-          // Calculate variance from the ideal distribution
-          let variance = 0;
-          for (const slot in tempRemaining) {
-            const deviation = tempRemaining[slot] - idealRemainingPerSlot;
-            variance += deviation * deviation;
-          }
-
-          // Heavily penalize deviation from even distribution
-          // This overrides other scoring factors to prioritize even gaps
-          score -= variance * 100;
         }
 
         if (score > bestScore) {
