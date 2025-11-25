@@ -80,7 +80,7 @@ export default function AppWrapper() {
           <div className="text-sm text-gray-700">
             <p className="font-semibold mb-1">6 Shifts Mode (New Scheme)</p>
             <ul className="list-disc list-inside space-y-1 text-gray-600">
-              <li>6 time slots: Midnight, Sunrise, Breakfast, Lunch, Afternoon, Dinner</li>
+              <li>6 time slots: Midnight, Early Morning, Morning, Lunch, Evening, Dinner</li>
               <li>Each rider is assigned exactly 3 shifts</li>
               <li>Total work time: 11-13 hours per rider</li>
               <li>Optimizes for consecutive triplet assignments</li>
@@ -92,19 +92,47 @@ export default function AppWrapper() {
     </div>
   );
 
-  // For 5-shift mode, render just the toggle and the original App
-  // App.jsx has its own page wrapper, so we only add a toggle bar at the top
+  // For 5-shift mode, render the full layout with 5-shift scheduler
   if (mode === '5shifts') {
     return (
-      <>
-        {/* Mode toggle positioned at the top */}
-        <div className="bg-gradient-to-br from-gray-50 via-yellow-50 to-teal-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 lg:pt-8">
-            <ModeToggle />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-yellow-50 to-teal-50 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Mode Toggle */}
+          <ModeToggle />
+
+          {/* Header */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+              <div className="p-3 rounded-xl" style={{ backgroundColor: '#ffe300' }}>
+                <Calendar className="w-8 h-8 text-gray-900" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
+                  Shift Scheduler - 5 Shifts Mode
+                </h1>
+                <p className="text-gray-600 text-sm sm:text-base">
+                  Assign 2 shifts per rider (8-11 hours) with optimal capacity utilization and consecutive shift preferences
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span> • v1.3.0
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 5-Shift Scheduler Content */}
+          <ShiftScheduler5 />
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center pb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
+            <span className="text-sm text-gray-600">Developed by</span>
+            <span className="text-sm font-bold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span>
+            <span className="text-xs text-gray-400">© 2025 • v1.3.0</span>
           </div>
         </div>
-        <ShiftScheduler5 />
-      </>
+      </div>
     );
   }
 

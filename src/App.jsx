@@ -445,30 +445,8 @@ export default function ShiftScheduler() {
   const metrics = getShiftMetrics();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-yellow-50 to-teal-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-          <div className="flex items-start gap-4 mb-4">
-            <div className="p-3 rounded-xl" style={{ backgroundColor: '#ffe300' }}>
-              <Calendar className="w-8 h-8 text-gray-900" />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-                Shift Scheduler
-              </h1>
-              <p className="text-gray-600 text-sm sm:text-base">
-                Intelligently assign shifts to riders with optimal capacity utilization and consecutive shift preferences
-              </p>
-              <p className="text-xs text-gray-500 mt-2">
-                Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span> • v1.2.3
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Input Section */}
+    <>
+      {/* Input Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-lg" style={{ backgroundColor: '#ffe30020' }}>
@@ -1172,16 +1150,6 @@ export default function ShiftScheduler() {
             </div>
           </>
         )}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-8 text-center pb-6">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
-          <span className="text-sm text-gray-600">Developed by</span>
-          <span className="text-sm font-bold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span>
-          <span className="text-xs text-gray-400">© 2025 • v1.2.3</span>
-        </div>
-      </div>
-    </div>
+    </>
   );
 }
