@@ -94,6 +94,31 @@ export const createSchedule = (numRiders, shiftData) => {
     targetRemaining[key] = shiftData[key].target;
   });
 
+  // ============================================================================
+  // EVEN DISTRIBUTION LOGIC FOR SIGNIFICANTLY UNDER-SCHEDULED SCENARIOS
+  // ============================================================================
+  // When riders are 20% or more below the target, distribute riders evenly
+  // across all shifts to prevent concentrated gaps in some time slots
+  const isSignificantlyBelowTarget = numRiders <= 0.8 * minRidersForTarget;
+
+  if (isSignificantlyBelowTarget) {
+    const totalAvailableShifts = numRiders * SHIFTS_PER_RIDER;
+    const numShifts = Object.keys(shiftData).length;
+    const basePerShift = Math.floor(totalAvailableShifts / numShifts);
+    const extraShifts = totalAvailableShifts % numShifts; // Remainder to distribute
+
+    // Sort shifts by original target (descending) to give extra shifts to higher-demand slots
+    const shiftsArray = Object.keys(shiftData)
+      .map(key => ({ key, target: shiftData[key].target }))
+      .sort((a, b) => b.target - a.target);
+
+    // Distribute evenly: each shift gets basePerShift, with some getting +1 for remainder
+    shiftsArray.forEach((shift, index) => {
+      targetRemaining[shift.key] = basePerShift + (index < extraShifts ? 1 : 0);
+    });
+  }
+  // ============================================================================
+
   const consecutivePairs = [
     ['slot1', 'slot2'],
     ['slot2', 'slot3'],
