@@ -111,8 +111,8 @@ export default function ShiftScheduler() {
     [shifts]
   );
 
-  const minRequiredRiders = useMemo(() => 
-    totalTargetShifts / SHIFTS_PER_RIDER,
+  const minRequiredRiders = useMemo(() =>
+    Math.ceil(totalTargetShifts / SHIFTS_PER_RIDER),
     [totalTargetShifts]
   );
 
@@ -221,11 +221,8 @@ export default function ShiftScheduler() {
 
         const evenShiftsIssue = validateEvenShifts(totalTargetShifts);
         if (evenShiftsIssue) {
-          validationResults.errors.push(evenShiftsIssue);
-          setError('Total target shifts must be even (each rider needs 2 shifts)');
-          setValidationDetails(validationResults);
-          setIsGenerating(false);
-          return;
+          // Add as info instead of error - odd shifts are now allowed
+          validationResults.info.push(evenShiftsIssue);
         }
 
         const riderCapacityIssues = validateRiderCapacity(riders, totalTargetShifts, totalMaxShifts);
@@ -265,7 +262,7 @@ export default function ShiftScheduler() {
             totalRiders: riders,
             totalTargetShifts: totalTargetShifts,
             totalMaxShifts: totalMaxShifts,
-            minRidersNeeded: totalTargetShifts / SHIFTS_PER_RIDER,
+            minRidersNeeded: Math.ceil(totalTargetShifts / SHIFTS_PER_RIDER),
             maxRidersPossible: Math.floor(totalMaxShifts / SHIFTS_PER_RIDER),
             extraCapacity: totalMaxShifts - totalTargetShifts,
             extraCapacityPercent: (((totalMaxShifts - totalTargetShifts) / totalTargetShifts) * 100).toFixed(1) + '%'
@@ -281,7 +278,7 @@ export default function ShiftScheduler() {
         if (result.success) {
           setSchedule(result.schedule);
           const actualRiders = result.schedule.length;
-          const targetRiders = totalTargetShifts / SHIFTS_PER_RIDER;
+          const targetRiders = Math.ceil(totalTargetShifts / SHIFTS_PER_RIDER);
           const totalShiftsScheduled = actualRiders * SHIFTS_PER_RIDER;
 
           let message;
@@ -935,18 +932,23 @@ export default function ShiftScheduler() {
                   </div>
                   <h2 className="text-xl font-bold text-gray-900">Capacity Analysis by Time Slot</h2>
                 </div>
-                <div className="hidden sm:flex items-center gap-4 text-xs">
+              </div>
+
+              {/* Color Legend */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Progress Bar Colors:</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#00d097' }} aria-hidden="true"></div>
-                    <span className="text-gray-600">Target Met</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f59e0b' }} aria-hidden="true"></div>
+                    <span className="text-xs text-gray-700"><span className="font-semibold" style={{ color: '#f59e0b' }}>Orange:</span> Below Target (&lt;100%)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-amber-500 rounded-full" aria-hidden="true"></div>
-                    <span className="text-gray-600">Under Target</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#00d097' }} aria-hidden="true"></div>
+                    <span className="text-xs text-gray-700"><span className="font-semibold" style={{ color: '#00d097' }}>Green:</span> Target Met (≥100%, &lt;max)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#ffe300' }} aria-hidden="true"></div>
-                    <span className="text-gray-600">At Capacity</span>
+                    <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ffe300' }} aria-hidden="true"></div>
+                    <span className="text-xs text-gray-700"><span className="font-semibold" style={{ color: '#ca9a00' }}>Yellow:</span> At Max Capacity</span>
                   </div>
                 </div>
               </div>

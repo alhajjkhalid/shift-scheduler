@@ -96,7 +96,7 @@ export default function ShiftScheduler6() {
   );
 
   const minRequiredRiders = useMemo(() =>
-    totalTargetShifts / SHIFTS_PER_RIDER,
+    Math.ceil(totalTargetShifts / SHIFTS_PER_RIDER),
     [totalTargetShifts]
   );
 
@@ -205,11 +205,8 @@ export default function ShiftScheduler6() {
 
         const divisibleShiftsIssue = validateDivisibleShifts6(totalTargetShifts);
         if (divisibleShiftsIssue) {
-          validationResults.errors.push(divisibleShiftsIssue);
-          setError('Total target shifts must be divisible by 3 (each rider needs 3 shifts)');
-          setValidationDetails(validationResults);
-          setIsGenerating(false);
-          return;
+          // Add as info instead of error - non-divisible shifts are now allowed
+          validationResults.info.push(divisibleShiftsIssue);
         }
 
         const riderCapacityIssues = validateRiderCapacity6(riders, totalTargetShifts, totalMaxShifts);
@@ -241,7 +238,7 @@ export default function ShiftScheduler6() {
             totalRiders: riders,
             totalTargetShifts: totalTargetShifts,
             totalMaxShifts: totalMaxShifts,
-            minRidersNeeded: totalTargetShifts / SHIFTS_PER_RIDER,
+            minRidersNeeded: Math.ceil(totalTargetShifts / SHIFTS_PER_RIDER),
             maxRidersPossible: Math.floor(totalMaxShifts / SHIFTS_PER_RIDER),
             shiftsPerRider: SHIFTS_PER_RIDER,
             extraCapacity: totalMaxShifts - totalTargetShifts,
@@ -815,6 +812,25 @@ export default function ShiftScheduler6() {
                   <TrendingUp className="w-5 h-5" style={{ color: '#00d097' }} />
                 </div>
                 <h2 className="text-xl font-bold text-gray-900">Capacity Analysis by Time Slot</h2>
+              </div>
+            </div>
+
+            {/* Color Legend */}
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Progress Bar Colors:</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#f59e0b' }}></div>
+                  <span className="text-xs text-gray-700"><span className="font-semibold" style={{ color: '#f59e0b' }}>Orange:</span> Below Target (&lt;100%)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#00d097' }}></div>
+                  <span className="text-xs text-gray-700"><span className="font-semibold" style={{ color: '#00d097' }}>Green:</span> Target Met (≥100%, &lt;max)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#ffe300' }}></div>
+                  <span className="text-xs text-gray-700"><span className="font-semibold" style={{ color: '#ca9a00' }}>Yellow:</span> At Max Capacity</span>
+                </div>
               </div>
             </div>
 

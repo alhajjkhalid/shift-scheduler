@@ -125,19 +125,24 @@ export const validateMaxCapacity6 = (shiftData) => {
 
 /**
  * Validate that total shifts is divisible by 3 (each rider needs 3 shifts)
+ * NOTE: Changed to INFO/WARNING instead of ERROR to allow non-divisible shifts
+ * The scheduler will handle partial assignments automatically
  */
 export const validateDivisibleShifts6 = (totalTargetShifts) => {
   if (totalTargetShifts % SHIFTS_PER_RIDER !== 0) {
     const nearestDivisible = Math.ceil(totalTargetShifts / SHIFTS_PER_RIDER) * SHIFTS_PER_RIDER;
+    const remainder = totalTargetShifts % SHIFTS_PER_RIDER;
     return {
       type: 'non_divisible_shifts',
-      severity: 'error',
-      message: `Total target shifts (${totalTargetShifts}) must be divisible by 3`,
-      explanation: `Each rider needs exactly ${SHIFTS_PER_RIDER} shifts, so total shifts must be divisible by 3`,
+      severity: 'info', // Changed from 'error' to 'info'
+      message: `Total target shifts (${totalTargetShifts}) is not perfectly divisible by 3`,
+      explanation: `Each rider works ${SHIFTS_PER_RIDER} shifts. With ${totalTargetShifts} target shifts, you'll have ${remainder} shift(s) that cannot be perfectly distributed.`,
       current: totalTargetShifts,
       needed: nearestDivisible,
       difference: nearestDivisible - totalTargetShifts,
-      suggestion: `Add ${nearestDivisible - totalTargetShifts} more shift(s) to reach ${nearestDivisible} total shifts`
+      suggestion: remainder === 1
+        ? `With current targets, 1 time slot will be 1 shift short of target, or 1 time slot will use 1 shift from max capacity.`
+        : `With current targets, scheduling will adjust by leaving ${remainder} shift(s) unassigned or using max capacity where possible.`
     };
   }
   return null;

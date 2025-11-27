@@ -116,19 +116,21 @@ export const validateMaxCapacity = (shiftData) => {
 
 /**
  * Validate that total shifts is even (divisible by 2)
+ * NOTE: Changed to INFO instead of ERROR to allow odd shifts
+ * The scheduler will handle partial assignments automatically
  */
 export const validateEvenShifts = (totalTargetShifts) => {
   if (totalTargetShifts % SHIFTS_PER_RIDER !== 0) {
     const nearestEven = totalTargetShifts % 2 === 0 ? totalTargetShifts : totalTargetShifts + 1;
     return {
       type: 'odd_shifts',
-      severity: 'error',
-      message: `Total target shifts (${totalTargetShifts}) must be even`,
-      explanation: `Each rider needs exactly ${SHIFTS_PER_RIDER} shifts, so total shifts must be divisible by 2`,
+      severity: 'info', // Changed from 'error' to 'info'
+      message: `Total target shifts (${totalTargetShifts}) is not perfectly divisible by 2`,
+      explanation: `Each rider works ${SHIFTS_PER_RIDER} shifts. With ${totalTargetShifts} target shifts, you'll have 1 shift that cannot be perfectly distributed.`,
       current: totalTargetShifts,
       needed: nearestEven,
       difference: nearestEven - totalTargetShifts,
-      suggestion: `Add ${nearestEven - totalTargetShifts} more shift(s) to reach ${nearestEven} total shifts`
+      suggestion: `With current targets, 1 time slot will be 1 shift short of target, or 1 time slot will use 1 shift from max capacity.`
     };
   }
   return null;

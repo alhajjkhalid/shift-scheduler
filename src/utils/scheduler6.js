@@ -181,26 +181,53 @@ export const createSchedule6 = (numRiders, shiftData) => {
   });
 
   // ============================================================================
-  // EVEN DISTRIBUTION LOGIC FOR SIGNIFICANTLY UNDER-SCHEDULED SCENARIOS
+  // PROPORTIONAL DISTRIBUTION LOGIC FOR UNDER-SCHEDULED SCENARIOS
   // ============================================================================
-  // When riders are 20% or more below the target, distribute riders evenly
-  // across all shifts to prevent concentrated gaps in some time slots
-  const isSignificantlyBelowTarget = numRiders <= 0.8 * minRidersForTarget;
+  // When riders are below the target, distribute riders proportionally
+  // based on each shift's percentage of the total target
+  const isBelowTarget = numRiders < minRidersForTarget;
 
-  if (isSignificantlyBelowTarget) {
+  if (isBelowTarget) {
     const totalAvailableShifts = numRiders * SHIFTS_PER_RIDER;
-    const numShifts = Object.keys(shiftData).length;
-    const basePerShift = Math.floor(totalAvailableShifts / numShifts);
-    const extraShifts = totalAvailableShifts % numShifts; // Remainder to distribute
 
-    // Sort shifts by original target (descending) to give extra shifts to higher-demand slots
-    const shiftsArray = Object.keys(shiftData)
-      .map(key => ({ key, target: shiftData[key].target }))
-      .sort((a, b) => b.target - a.target);
+    // Calculate proportional allocation based on target percentages
+    const proportionalAllocations = {};
+    const shiftKeys = Object.keys(shiftData);
 
-    // Distribute evenly: each shift gets basePerShift, with some getting +1 for remainder
-    shiftsArray.forEach((shift, index) => {
-      targetRemaining[shift.key] = basePerShift + (index < extraShifts ? 1 : 0);
+    // First pass: calculate proportional values using floor
+    let allocatedShifts = 0;
+    const remainders = [];
+
+    shiftKeys.forEach(key => {
+      const proportion = shiftData[key].target / totalTargetShifts;
+      const exactAllocation = proportion * totalAvailableShifts;
+      const flooredAllocation = Math.floor(exactAllocation);
+      const remainder = exactAllocation - flooredAllocation;
+
+      proportionalAllocations[key] = flooredAllocation;
+      allocatedShifts += flooredAllocation;
+      remainders.push({ key, remainder, target: shiftData[key].target });
+    });
+
+    // Second pass: distribute remaining shifts to those with largest remainders
+    const shiftsToDistribute = totalAvailableShifts - allocatedShifts;
+    if (shiftsToDistribute > 0) {
+      // Sort by remainder (descending), then by target (descending) as tiebreaker
+      remainders.sort((a, b) => {
+        if (Math.abs(b.remainder - a.remainder) > 0.0001) {
+          return b.remainder - a.remainder;
+        }
+        return b.target - a.target;
+      });
+
+      for (let i = 0; i < shiftsToDistribute; i++) {
+        proportionalAllocations[remainders[i].key]++;
+      }
+    }
+
+    // Apply proportional allocations, ensuring we never exceed targets
+    shiftKeys.forEach(key => {
+      targetRemaining[key] = Math.min(proportionalAllocations[key], shiftData[key].target);
     });
   }
   // ============================================================================
