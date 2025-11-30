@@ -157,7 +157,7 @@ export default function AppWrapper() {
                 Assign 3 shifts per rider (11-13 hours) with optimal consecutive triplet placement
               </p>
               <p className="text-xs text-gray-500 mt-2">
-                Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span> • v1.3.0
+                Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span> • v1.4.0
               </p>
             </div>
           </div>
@@ -172,7 +172,7 @@ export default function AppWrapper() {
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
           <span className="text-sm text-gray-600">Developed by</span>
           <span className="text-sm font-bold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span>
-          <span className="text-xs text-gray-400">© 2025 • v1.3.0</span>
+          <span className="text-xs text-gray-400">© 2025 • v1.4.0</span>
         </div>
       </div>
     </div>
