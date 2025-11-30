@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Developer: Khalid Ahmad Alhajj
- * Version: 1.3.0 (Added 6-Shift Mode)
+ * Version: 1.4.0 (Improved scheduling logic and UI)
  * Last Updated: November 2024
  *
  * Wrapper component that allows switching between 5-shift and 6-shift modes
@@ -114,7 +114,7 @@ export default function AppWrapper() {
                   Assign 2 shifts per rider (8-11 hours) with optimal capacity utilization and consecutive shift preferences
                 </p>
                 <p className="text-xs text-gray-500 mt-2">
-                  Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span> • v1.3.0
+                  Developed by <span className="font-semibold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span> • v1.4.0
                 </p>
               </div>
             </div>
@@ -129,7 +129,7 @@ export default function AppWrapper() {
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm border border-gray-200">
             <span className="text-sm text-gray-600">Developed by</span>
             <span className="text-sm font-bold" style={{ color: '#00d097' }}>Khalid Ahmad Alhajj</span>
-            <span className="text-xs text-gray-400">© 2025 • v1.3.0</span>
+            <span className="text-xs text-gray-400">© 2025 • v1.4.0</span>
           </div>
         </div>
       </div>
