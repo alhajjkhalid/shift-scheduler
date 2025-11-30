@@ -972,7 +972,7 @@ export default function ShiftScheduler() {
 
                     <div className="mb-3">
                       <div className="flex items-center justify-between text-xs mb-2">
-                        <span className="text-gray-600">Target Progress (100% = Target Met)</span>
+                        <span className="text-gray-600">Capacity</span>
                         <span className="font-semibold text-gray-900">{shift.utilization.toFixed(0)}%</span>
                       </div>
                       <div className="h-3 bg-gray-200 rounded-full overflow-hidden" role="progressbar" aria-valuenow={shift.utilization} aria-valuemin="0" aria-valuemax="150">
