@@ -4,7 +4,7 @@
  * ============================================================================
  *
  * Developer: Khalid Ahmad Alhajj
- * Version: 1.0.0 (6 Shifts Implementation)
+ * Version: 1.4.0 (6 Shifts Implementation)
  * Last Updated: November 2024
  *
  * 6-Shift scheduling component where riders work 3 shifts per day (11-13 hours)
