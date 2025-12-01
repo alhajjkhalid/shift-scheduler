@@ -867,7 +867,7 @@ export default function ShiftScheduler6() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-4 gap-2 text-center">
                     <div className="p-2 bg-white rounded">
                       <div className="text-xs text-gray-600">Target</div>
                       <div className="font-bold text-gray-900">{shift.target}</div>
@@ -879,6 +879,13 @@ export default function ShiftScheduler6() {
                     <div className="p-2 bg-white rounded">
                       <div className="text-xs text-gray-600">Max</div>
                       <div className="font-bold text-gray-900">{shift.max}</div>
+                    </div>
+                    <div className="p-2 bg-white rounded">
+                      <div className="text-xs text-gray-600">Available</div>
+                      <div className="text-[10px] text-gray-500 -mt-0.5 mb-1">(Max - Assigned)</div>
+                      <div className="font-bold" style={{ color: shift.available > 0 ? '#00d097' : '#9ca3af' }}>
+                        {shift.available}
+                      </div>
                     </div>
                   </div>
                 </div>

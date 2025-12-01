@@ -1001,6 +1001,7 @@ export default function ShiftScheduler() {
                       </div>
                       <div className="text-center p-3 bg-white rounded-lg">
                         <div className="text-xs text-gray-600 mb-1">Available</div>
+                        <div className="text-[10px] text-gray-500 -mt-0.5 mb-1">(Max - Assigned)</div>
                         <div className="text-lg font-bold" style={{ color: shift.available > 0 ? '#00d097' : '#9ca3af' }}>
                           {shift.available}
                         </div>
