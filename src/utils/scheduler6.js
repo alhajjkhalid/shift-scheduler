@@ -328,14 +328,16 @@ export const createSchedule6 = (numRiders, shiftData) => {
     targetRemaining[s3]--;
   }
 
-  // Try to schedule extra riders if all targets are met
+  // Try to schedule extra riders - either when all targets are met OR when using extra capacity
   const remainingSum = Object.values(targetRemaining).reduce((a, b) => a + b, 0);
   const extraRidersNeeded = numRiders - riderIndex;
 
-  if (extraRidersNeeded > 0 && remainingSum === 0) {
+  if (extraRidersNeeded > 0) {
+    // Calculate remaining capacity: start from max capacity and subtract already scheduled riders
     const maxRemaining = {};
     Object.keys(shiftData).forEach(key => {
-      maxRemaining[key] = shiftData[key].max - shiftData[key].target;
+      const alreadyScheduled = shiftData[key].target - targetRemaining[key];
+      maxRemaining[key] = shiftData[key].max - alreadyScheduled;
     });
 
     for (let i = 0; i < extraRidersNeeded; i++) {
@@ -380,10 +382,12 @@ export const createSchedule6 = (numRiders, shiftData) => {
 
       if (bestTriplet) {
         const [s1, s2, s3] = bestTriplet;
+        // Mark as extra only if all targets have been met
+        const isExtraRider = remainingSum === 0;
         riderSchedule.push({
           riderId: ++riderIndex,
           shifts: [s1, s2, s3],
-          isExtra: true
+          isExtra: isExtraRider
         });
         maxRemaining[s1]--;
         maxRemaining[s2]--;
