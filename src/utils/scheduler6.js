@@ -32,12 +32,12 @@ const PARTNERS_MAP = {
  * These represent 3 consecutive shifts that form an optimal work block
  */
 const CONSECUTIVE_TRIPLETS = [
-  ['slot1', 'slot2', 'slot3'], // Midnight + Early Morning + Morning (12AM-12PM = 12 hours)
-  ['slot2', 'slot3', 'slot4'], // Early Morning + Morning + Lunch (3AM-4PM = 13 hours)
-  ['slot3', 'slot4', 'slot5'], // Morning + Lunch + Evening (8AM-8PM = 12 hours)
+  ['slot1', 'slot2', 'slot3'], // Late Night + Early Morning + Breakfast (12AM-12PM = 12 hours)
+  ['slot2', 'slot3', 'slot4'], // Early Morning + Breakfast + Lunch (3AM-4PM = 13 hours)
+  ['slot3', 'slot4', 'slot5'], // Breakfast + Lunch + Evening (8AM-8PM = 12 hours)
   ['slot4', 'slot5', 'slot6'], // Lunch + Evening + Dinner (12PM-12AM = 12 hours)
-  ['slot5', 'slot6', 'slot1'], // Evening + Dinner + Midnight (4PM-3AM = 11 hours)
-  ['slot6', 'slot1', 'slot2'], // Dinner + Midnight + Early Morning (8PM-8AM = 12 hours)
+  ['slot5', 'slot6', 'slot1'], // Evening + Dinner + Late Night (4PM-3AM = 11 hours)
+  ['slot6', 'slot1', 'slot2'], // Dinner + Late Night + Early Morning (8PM-8AM = 12 hours)
 ];
 
 /**

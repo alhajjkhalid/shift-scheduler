@@ -31,17 +31,17 @@ const PARTNERS_MAP = {
 /**
  * Time slot configuration for 6 shifts
  * Based on the specifications:
- * - 0~2:59: Midnight
+ * - 0~2:59: Late Night
  * - 3~7:59: Early Morning
- * - 8~11:59: Morning
+ * - 8~11:59: Breakfast
  * - 12~15:59: Lunch
  * - 16~19:59: Evening
  * - 20~23:59: Dinner
  */
 export const timeSlots6 = [
-  { id: 'slot1', label: 'Shift 1 (Midnight)', time: '12 AM - 3 AM', key: 'slot1', icon: '🌙' },
+  { id: 'slot1', label: 'Shift 1 (Late Night)', time: '12 AM - 3 AM', key: 'slot1', icon: '🌙' },
   { id: 'slot2', label: 'Shift 2 (Early Morning)', time: '3 AM - 8 AM', key: 'slot2', icon: '🌅' },
-  { id: 'slot3', label: 'Shift 3 (Morning)', time: '8 AM - 12 PM', key: 'slot3', icon: '☀️' },
+  { id: 'slot3', label: 'Shift 3 (Breakfast)', time: '8 AM - 12 PM', key: 'slot3', icon: '☀️' },
   { id: 'slot4', label: 'Shift 4 (Lunch)', time: '12 PM - 4 PM', key: 'slot4', icon: '🍽️' },
   { id: 'slot5', label: 'Shift 5 (Evening)', time: '4 PM - 8 PM', key: 'slot5', icon: '🌆' },
   { id: 'slot6', label: 'Shift 6 (Dinner)', time: '8 PM - 12 AM', key: 'slot6', icon: '🌃' },
@@ -228,12 +228,12 @@ export const validatePairingFeasibility6 = (shiftData, numRiders) => {
 
   // For 6-shift scheme, check if consecutive triplets can be formed
   const consecutiveTriplets = [
-    ['slot1', 'slot2', 'slot3'], // Midnight + Early Morning + Morning
-    ['slot2', 'slot3', 'slot4'], // Early Morning + Morning + Lunch
-    ['slot3', 'slot4', 'slot5'], // Morning + Lunch + Evening
+    ['slot1', 'slot2', 'slot3'], // Late Night + Early Morning + Breakfast
+    ['slot2', 'slot3', 'slot4'], // Early Morning + Breakfast + Lunch
+    ['slot3', 'slot4', 'slot5'], // Breakfast + Lunch + Evening
     ['slot4', 'slot5', 'slot6'], // Lunch + Evening + Dinner
-    ['slot5', 'slot6', 'slot1'], // Evening + Dinner + Midnight (wrap)
-    ['slot6', 'slot1', 'slot2'], // Dinner + Midnight + Early Morning (wrap)
+    ['slot5', 'slot6', 'slot1'], // Evening + Dinner + Late Night (wrap)
+    ['slot6', 'slot1', 'slot2'], // Dinner + Late Night + Early Morning (wrap)
   ];
 
   for (const shift in targets) {

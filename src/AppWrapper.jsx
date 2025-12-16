@@ -18,76 +18,124 @@ import { Calendar } from 'lucide-react';
 // Import both scheduler components
 import ShiftScheduler5 from './App';
 import ShiftScheduler6 from './ShiftScheduler6';
+import FeedbackSection from './FeedbackSection';
 
 export default function AppWrapper() {
   const [mode, setMode] = useState('5shifts'); // '5shifts' or '6shifts'
 
   // Mode Toggle Component (shared between both modes)
   const ModeToggle = () => (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <span className="text-sm font-medium text-gray-700">Select Scheduling Mode:</span>
-        <div className="flex rounded-xl overflow-hidden border-2 border-gray-200">
-          <button
-            onClick={() => setMode('5shifts')}
-            className={`px-6 py-3 font-semibold text-sm transition-all duration-200 flex items-center gap-2 ${
-              mode === '5shifts'
-                ? 'text-gray-900'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-            style={{
-              backgroundColor: mode === '5shifts' ? '#ffe300' : undefined,
-            }}
-          >
-            <span className="text-lg font-bold">5</span>
-            <span>Shifts Tool</span>
-            <span className="text-xs text-gray-500 ml-1">(2 per rider)</span>
-          </button>
-          <button
-            onClick={() => setMode('6shifts')}
-            className={`px-6 py-3 font-semibold text-sm transition-all duration-200 flex items-center gap-2 border-l-2 border-gray-200 ${
-              mode === '6shifts'
-                ? 'text-white'
-                : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-            style={{
-              backgroundColor: mode === '6shifts' ? '#00d097' : undefined,
-            }}
-          >
-            <span className="text-lg font-bold">6</span>
-            <span>Shifts Tool</span>
-            <span className={`text-xs ml-1 ${mode === '6shifts' ? 'text-green-100' : 'text-gray-500'}`}>(3 per rider)</span>
-          </button>
-        </div>
-      </div>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">Select Your Scheduling Mode</h3>
 
-      {/* Mode Description */}
-      <div className="mt-4 p-4 rounded-lg" style={{
-        backgroundColor: mode === '5shifts' ? '#ffe30015' : '#00d09715',
-        borderLeft: `4px solid ${mode === '5shifts' ? '#ffe300' : '#00d097'}`
-      }}>
-        {mode === '5shifts' ? (
-          <div className="text-sm text-gray-700">
-            <p className="font-semibold mb-1">5 Shifts Mode (Current Standard)</p>
-            <ul className="list-disc list-inside space-y-1 text-gray-600">
-              <li>5 time slots throughout the day</li>
-              <li>Each rider is assigned exactly 2 shifts</li>
-              <li>Total work time: 8-11 hours per rider</li>
-              <li>Optimizes for consecutive shift pairs</li>
-            </ul>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* 5 Shifts Card */}
+        <button
+          onClick={() => setMode('5shifts')}
+          className={`relative p-6 rounded-xl border-2 transition-all duration-300 text-left group ${
+            mode === '5shifts'
+              ? 'border-yellow-400 shadow-lg scale-105'
+              : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+          }`}
+          style={{
+            backgroundColor: mode === '5shifts' ? '#fffbeb' : '#ffffff',
+          }}
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-2xl transition-all ${
+                  mode === '5shifts' ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-900'
+                }`}
+                style={{
+                  backgroundColor: mode === '5shifts' ? '#ffe300' : '#f3f4f6',
+                }}
+              >
+                5
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900">5 Shifts Tool</h4>
+                <p className="text-xs text-gray-600">Current Standard</p>
+              </div>
+            </div>
+            {mode === '5shifts' && (
+              <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="text-sm text-gray-700">
-            <p className="font-semibold mb-1">6 Shifts Mode (New Scheme)</p>
-            <ul className="list-disc list-inside space-y-1 text-gray-600">
-              <li>6 time slots: Midnight, Early Morning, Morning, Lunch, Evening, Dinner</li>
-              <li>Each rider is assigned exactly 3 shifts</li>
-              <li>Total work time: 11-13 hours per rider</li>
-              <li>Optimizes for consecutive triplet assignments</li>
-              <li>Better supply-demand matching for peak hours</li>
-            </ul>
+
+          <div className="space-y-2 text-sm text-gray-700">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+              <span>2 shifts per rider</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+              <span>8-11 hours total</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>
+              <span>5 time slots</span>
+            </div>
           </div>
-        )}
+        </button>
+
+        {/* 6 Shifts Card */}
+        <button
+          onClick={() => setMode('6shifts')}
+          className={`relative p-6 rounded-xl border-2 transition-all duration-300 text-left group ${
+            mode === '6shifts'
+              ? 'border-green-400 shadow-lg scale-105'
+              : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+          }`}
+          style={{
+            backgroundColor: mode === '6shifts' ? '#ecfdf5' : '#ffffff',
+          }}
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-2xl transition-all ${
+                  mode === '6shifts' ? 'text-white' : 'text-gray-600 group-hover:text-gray-900'
+                }`}
+                style={{
+                  backgroundColor: mode === '6shifts' ? '#00d097' : '#f3f4f6',
+                }}
+              >
+                6
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-900">6 Shifts Tool</h4>
+                <p className="text-xs text-gray-600">New Scheme</p>
+              </div>
+            </div>
+            {mode === '6shifts' && (
+              <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2 text-sm text-gray-700">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#00d097' }}></span>
+              <span>3 shifts per rider</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#00d097' }}></span>
+              <span>11-13 hours total</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#00d097' }}></span>
+              <span>6 time slots</span>
+            </div>
+          </div>
+        </button>
       </div>
     </div>
   );
@@ -122,6 +170,9 @@ export default function AppWrapper() {
 
           {/* 5-Shift Scheduler Content */}
           <ShiftScheduler5 />
+
+          {/* Feedback Section */}
+          <FeedbackSection />
         </div>
 
         {/* Footer */}
@@ -165,6 +216,9 @@ export default function AppWrapper() {
 
         {/* 6-Shift Scheduler Content */}
         <ShiftScheduler6 />
+
+        {/* Feedback Section */}
+        <FeedbackSection />
       </div>
 
       {/* Footer */}
