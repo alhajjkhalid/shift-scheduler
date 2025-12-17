@@ -21,7 +21,7 @@ import ShiftScheduler6 from './ShiftScheduler6';
 import FeedbackSection from './FeedbackSection';
 
 export default function AppWrapper() {
-  const [mode, setMode] = useState('5shifts'); // '5shifts' or '6shifts'
+  const [mode, setMode] = useState('6shifts'); // '5shifts' or '6shifts'
 
   // Mode Toggle Component (shared between both modes)
   const ModeToggle = () => (
