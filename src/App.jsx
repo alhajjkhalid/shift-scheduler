@@ -453,47 +453,6 @@ export default function ShiftScheduler() {
           </div>
 
           <div className="space-y-6">
-            {/* Total Riders Input */}
-            <div className="p-6 rounded-xl border-2" style={{ 
-              background: 'linear-gradient(135deg, #ffe30010 0%, #00d09710 100%)',
-              borderColor: '#ffe300'
-            }}>
-              <label htmlFor="totalRiders" className="block text-sm font-semibold text-gray-900 mb-2">
-                Total Number of Riders
-              </label>
-              <input
-                id="totalRiders"
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                value={totalRiders}
-                onChange={(e) => handleTotalRidersChange(e.target.value)}
-                className="w-full px-4 py-3 text-lg border-2 rounded-lg focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: '#ffe300',
-                  outlineColor: '#00d097'
-                }}
-                placeholder="e.g., 42"
-                disabled={isGenerating}
-                aria-label="Total number of riders to schedule"
-                aria-required="true"
-                onFocus={(e) => e.target.style.borderColor = '#00d097'}
-                onBlur={(e) => e.target.style.borderColor = '#ffe300'}
-              />
-              <div className="mt-3 flex items-center gap-6 text-sm">
-                <div className="flex items-center gap-2">
-                  <Target className="w-4 h-4" style={{ color: '#00d097' }} />
-                  <span className="text-gray-600">Minimum Required:</span>
-                  <span className="font-bold text-gray-900">{minRequiredRiders || 0}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4" style={{ color: '#00d097' }} />
-                  <span className="text-gray-600">Maximum Capacity:</span>
-                  <span className="font-bold text-gray-900">{maxAllowedRiders || 0}</span>
-                </div>
-              </div>
-            </div>
-
             {/* Shift Requirements */}
             <div>
               <div className="flex items-center gap-3 mb-4">
@@ -570,6 +529,47 @@ export default function ShiftScheduler() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Total Riders Input */}
+            <div className="p-6 rounded-xl border-2" style={{
+              background: 'linear-gradient(135deg, #ffe30010 0%, #00d09710 100%)',
+              borderColor: '#ffe300'
+            }}>
+              <label htmlFor="totalRiders" className="block text-sm font-semibold text-gray-900 mb-2">
+                Total Number of Riders
+              </label>
+              <input
+                id="totalRiders"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={totalRiders}
+                onChange={(e) => handleTotalRidersChange(e.target.value)}
+                className="w-full px-4 py-3 text-lg border-2 rounded-lg focus:ring-2 transition-all"
+                style={{
+                  borderColor: '#ffe300',
+                  outlineColor: '#00d097'
+                }}
+                placeholder="e.g., 42"
+                disabled={isGenerating}
+                aria-label="Total number of riders to schedule"
+                aria-required="true"
+                onFocus={(e) => e.target.style.borderColor = '#00d097'}
+                onBlur={(e) => e.target.style.borderColor = '#ffe300'}
+              />
+              <div className="mt-3 flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <Target className="w-4 h-4" style={{ color: '#00d097' }} />
+                  <span className="text-gray-600">Minimum Required:</span>
+                  <span className="font-bold text-gray-900">{minRequiredRiders || 0}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4" style={{ color: '#00d097' }} />
+                  <span className="text-gray-600">Maximum Capacity:</span>
+                  <span className="font-bold text-gray-900">{maxAllowedRiders || 0}</span>
+                </div>
               </div>
             </div>
 
