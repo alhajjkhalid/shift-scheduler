@@ -234,19 +234,33 @@ export const createSchedule6 = (numRiders, shiftData) => {
 
   const allTriplets = getAllPossibleTriplets();
 
-  // Only schedule up to the number of riders we actually have
-  const ridersToScheduleForTarget = Math.min(numRiders, minRidersForTarget);
+  // Track actual scheduled counts vs targets
+  const scheduledCounts = {};
+  Object.keys(shiftData).forEach(key => scheduledCounts[key] = 0);
+
+  // Calculate max remaining capacity for each slot
+  const maxRemaining = {};
+  Object.keys(shiftData).forEach(key => {
+    maxRemaining[key] = shiftData[key].max;
+  });
 
   // Detect small numbers and adjust strategy
   const isSmallNumber = minRidersForTarget < 15;
 
-  for (let iteration = 0; iteration < ridersToScheduleForTarget; iteration++) {
-    const remaining = Object.values(targetRemaining).reduce((a, b) => a + b, 0);
-    if (remaining < SHIFTS_PER_RIDER) break;
+  // Main scheduling loop - continues until we've scheduled all riders or can't find valid triplets
+  for (let iteration = 0; iteration < numRiders; iteration++) {
+    const targetRemainingSum = Object.values(targetRemaining).reduce((a, b) => a + b, 0);
+    const maxRemainingSum = Object.values(maxRemaining).reduce((a, b) => a + b, 0);
+
+    // Stop if no capacity left at all
+    if (maxRemainingSum < SHIFTS_PER_RIDER) break;
 
     let bestTriplet = null;
     let bestScore = -Infinity;
+    let useMaxCapacity = false;
 
+    // PHASE 1: Try to find triplets using only target remaining
+    // This ensures we fill targets before using extra capacity
     for (const triplet of allTriplets) {
       const [s1, s2, s3] = triplet;
 
@@ -256,7 +270,19 @@ export const createSchedule6 = (numRiders, shiftData) => {
         tempRemaining[s2]--;
         tempRemaining[s3]--;
 
-        if (!canFormValidTriplets(tempRemaining)) {
+        // Check if this triplet keeps targets feasible
+        // BUT: also check if max capacity can rescue if targets alone fail
+        const targetsFeasible = canFormValidTriplets(tempRemaining);
+
+        // Calculate max-based feasibility as fallback
+        const tempMaxRemaining = {...maxRemaining};
+        tempMaxRemaining[s1]--;
+        tempMaxRemaining[s2]--;
+        tempMaxRemaining[s3]--;
+        const maxFeasible = canFormValidTriplets(tempMaxRemaining);
+
+        // Skip only if BOTH target and max would be infeasible
+        if (!targetsFeasible && !maxFeasible) {
           continue;
         }
 
@@ -287,27 +313,111 @@ export const createSchedule6 = (numRiders, shiftData) => {
             score += 50; // Bonus for having at least 2 consecutive shifts
           }
 
-          // Bottleneck awareness
+          // Bottleneck awareness using MAX remaining (more accurate for long-term feasibility)
           let totalRatio = 0;
           for (const slot of triplet) {
             const partners = PARTNERS_MAP[slot];
-            const partnerCap = partners.reduce((sum, p) => sum + (tempRemaining[p] || 0), 0);
-            const ratio = tempRemaining[slot] > 0 ? tempRemaining[slot] / (partnerCap + 1) : 0;
+            const partnerCap = partners.reduce((sum, p) => sum + (tempMaxRemaining[p] || 0), 0);
+            const ratio = tempMaxRemaining[slot] > 0 ? tempMaxRemaining[slot] / (partnerCap + 1) : 0;
             totalRatio += ratio;
           }
           score -= totalRatio * 30;
 
-          // Balance scoring
+          // Local balance scoring (within triplet)
           const values = [targetRemaining[s1], targetRemaining[s2], targetRemaining[s3]];
           const max = Math.max(...values);
           const min = Math.min(...values);
           const balance = 1 - (max - min) / (max + 1);
           score += balance * 20;
+
+          // GLOBAL BALANCE SCORING - considers ALL 6 slots using TARGET remaining
+          // This ensures we prioritize filling all targets evenly
+          const allTargetValues = Object.values(tempRemaining);
+          const globalTargetMax = Math.max(...allTargetValues);
+          const globalTargetMin = Math.min(...allTargetValues);
+          const globalTargetSum = allTargetValues.reduce((a, b) => a + b, 0);
+
+          if (globalTargetSum > 0) {
+            const globalBalance = 1 - (globalTargetMax - globalTargetMin) / (globalTargetSum + 1);
+            score += globalBalance * 50;
+          }
+
+          // CRITICAL: Strong bonus for pairing slots with high remaining targets with low remaining
+          // Find slots with highest and lowest TARGET remaining (not max)
+          const sortedByTarget = Object.entries(tempRemaining)
+            .filter(([_, v]) => v >= 0)
+            .sort((a, b) => a[1] - b[1]);
+
+          if (sortedByTarget.length >= 2) {
+            const smallestTargetSlot = sortedByTarget[0][0];
+            const largestTargetSlot = sortedByTarget[sortedByTarget.length - 1][0];
+            const largestTargetValue = sortedByTarget[sortedByTarget.length - 1][1];
+
+            // Give massive bonus for reducing the largest remaining target
+            if (triplet.includes(largestTargetSlot) && largestTargetValue > 0) {
+              score += 200; // Very strong bonus
+            }
+
+            // Bonus for pairing smallest with largest
+            if (triplet.includes(smallestTargetSlot) && triplet.includes(largestTargetSlot)) {
+              score += 150;
+            }
+          }
         }
 
         if (score > bestScore) {
           bestScore = score;
           bestTriplet = triplet;
+        }
+      }
+    }
+
+    // PHASE 2: If no target-only triplet found, try using max capacity
+    // This allows continuing when some slots have reached their targets
+    if (!bestTriplet && targetRemainingSum > 0) {
+      for (const triplet of allTriplets) {
+        const [s1, s2, s3] = triplet;
+
+        // Check max capacity availability
+        if (maxRemaining[s1] > 0 && maxRemaining[s2] > 0 && maxRemaining[s3] > 0) {
+          // At least one slot must still have target remaining (prioritize filling targets)
+          const hasTargetNeed = targetRemaining[s1] > 0 || targetRemaining[s2] > 0 || targetRemaining[s3] > 0;
+          if (!hasTargetNeed) continue;
+
+          const tempMaxRemaining = {...maxRemaining};
+          tempMaxRemaining[s1]--;
+          tempMaxRemaining[s2]--;
+          tempMaxRemaining[s3]--;
+
+          if (!canFormValidTriplets(tempMaxRemaining)) {
+            continue;
+          }
+
+          let score = 0;
+          const isConsec = isConsecutiveTriplet(s1, s2, s3);
+
+          // Score based on how much this helps fill remaining targets
+          const targetContribution =
+            (targetRemaining[s1] > 0 ? 1 : 0) +
+            (targetRemaining[s2] > 0 ? 1 : 0) +
+            (targetRemaining[s3] > 0 ? 1 : 0);
+
+          score += targetContribution * 500; // Heavily prioritize filling targets
+
+          if (isConsec) {
+            score += 100;
+          } else if (hasConsecutivePair(triplet)) {
+            score += 30;
+          }
+
+          // Prefer triplets that help fill the largest remaining targets
+          score += (targetRemaining[s1] + targetRemaining[s2] + targetRemaining[s3]) * 10;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestTriplet = triplet;
+            useMaxCapacity = true;
+          }
         }
       }
     }
@@ -323,22 +433,29 @@ export const createSchedule6 = (numRiders, shiftData) => {
       shifts: [s1, s2, s3],
       isExtra: false
     });
+
+    // Update target remaining (can go negative, meaning we used extra capacity)
     targetRemaining[s1]--;
     targetRemaining[s2]--;
     targetRemaining[s3]--;
+
+    // Update max remaining (always decrement)
+    maxRemaining[s1]--;
+    maxRemaining[s2]--;
+    maxRemaining[s3]--;
+
+    // Track actual scheduled counts
+    scheduledCounts[s1]++;
+    scheduledCounts[s2]++;
+    scheduledCounts[s3]++;
   }
 
-  // Try to schedule extra riders - either when all targets are met OR when using extra capacity
+  // Try to schedule extra riders using remaining max capacity
   const remainingSum = Object.values(targetRemaining).reduce((a, b) => a + b, 0);
   const extraRidersNeeded = numRiders - riderIndex;
 
   if (extraRidersNeeded > 0) {
-    // Calculate remaining capacity: start from max capacity and subtract already scheduled riders
-    const maxRemaining = {};
-    Object.keys(shiftData).forEach(key => {
-      const alreadyScheduled = shiftData[key].target - targetRemaining[key];
-      maxRemaining[key] = shiftData[key].max - alreadyScheduled;
-    });
+    // maxRemaining is already tracked from the main loop above
 
     for (let i = 0; i < extraRidersNeeded; i++) {
       let bestTriplet = null;
@@ -382,16 +499,19 @@ export const createSchedule6 = (numRiders, shiftData) => {
 
       if (bestTriplet) {
         const [s1, s2, s3] = bestTriplet;
-        // Mark as extra only if all targets have been met
-        const isExtraRider = remainingSum === 0;
+        // Mark as extra only if all targets have been met (targetRemaining <= 0 for all slots)
+        const allTargetsMet = Object.values(targetRemaining).every(v => v <= 0);
         riderSchedule.push({
           riderId: ++riderIndex,
           shifts: [s1, s2, s3],
-          isExtra: isExtraRider
+          isExtra: allTargetsMet
         });
         maxRemaining[s1]--;
         maxRemaining[s2]--;
         maxRemaining[s3]--;
+        scheduledCounts[s1]++;
+        scheduledCounts[s2]++;
+        scheduledCounts[s3]++;
       } else {
         break;
       }
