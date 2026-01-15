@@ -306,14 +306,26 @@ export const createSchedule6 = (numRiders, shiftData) => {
           }
           score -= totalRatio * 5;
         } else {
-          // Large number strategy: balanced scoring
-          if (isConsec) {
-            score += 150;
-          } else if (hasConsecutivePair(triplet)) {
-            score += 50; // Bonus for having at least 2 consecutive shifts
-          }
+          // Large number strategy: CONSECUTIVE-FIRST with balance as tiebreaker
+          //
+          // Scoring tiers (higher tier always wins):
+          // Tier 1 (10000+): Consecutive triplets
+          // Tier 2 (5000+): Partial consecutive (2 consecutive shifts)
+          // Tier 3 (0+): Non-consecutive (only when necessary)
+          //
+          // Within each tier, balance scoring determines the best choice
 
-          // Bottleneck awareness using MAX remaining (more accurate for long-term feasibility)
+          if (isConsec) {
+            score += 10000; // Tier 1: Always prefer consecutive
+          } else if (hasConsecutivePair(triplet)) {
+            score += 5000; // Tier 2: Partial consecutive
+          }
+          // Tier 3: Non-consecutive gets base score of 0
+
+          // Within-tier scoring: balance and bottleneck awareness
+          // These determine which triplet to choose WITHIN the same tier
+
+          // Bottleneck awareness using MAX remaining (prevents dead-ends)
           let totalRatio = 0;
           for (const slot of triplet) {
             const partners = PARTNERS_MAP[slot];
@@ -321,17 +333,9 @@ export const createSchedule6 = (numRiders, shiftData) => {
             const ratio = tempMaxRemaining[slot] > 0 ? tempMaxRemaining[slot] / (partnerCap + 1) : 0;
             totalRatio += ratio;
           }
-          score -= totalRatio * 30;
+          score -= totalRatio * 100; // Strong penalty for bottleneck creation
 
-          // Local balance scoring (within triplet)
-          const values = [targetRemaining[s1], targetRemaining[s2], targetRemaining[s3]];
-          const max = Math.max(...values);
-          const min = Math.min(...values);
-          const balance = 1 - (max - min) / (max + 1);
-          score += balance * 20;
-
-          // GLOBAL BALANCE SCORING - considers ALL 6 slots using TARGET remaining
-          // This ensures we prioritize filling all targets evenly
+          // Global balance scoring - keeps targets evenly distributed
           const allTargetValues = Object.values(tempRemaining);
           const globalTargetMax = Math.max(...allTargetValues);
           const globalTargetMin = Math.min(...allTargetValues);
@@ -339,11 +343,10 @@ export const createSchedule6 = (numRiders, shiftData) => {
 
           if (globalTargetSum > 0) {
             const globalBalance = 1 - (globalTargetMax - globalTargetMin) / (globalTargetSum + 1);
-            score += globalBalance * 50;
+            score += globalBalance * 200; // Strong balance preference within tier
           }
 
-          // CRITICAL: Strong bonus for pairing slots with high remaining targets with low remaining
-          // Find slots with highest and lowest TARGET remaining (not max)
+          // Bonus for reducing largest remaining target (within tier)
           const sortedByTarget = Object.entries(tempRemaining)
             .filter(([_, v]) => v >= 0)
             .sort((a, b) => a[1] - b[1]);
@@ -353,14 +356,14 @@ export const createSchedule6 = (numRiders, shiftData) => {
             const largestTargetSlot = sortedByTarget[sortedByTarget.length - 1][0];
             const largestTargetValue = sortedByTarget[sortedByTarget.length - 1][1];
 
-            // Give massive bonus for reducing the largest remaining target
+            // Prefer triplets that reduce the largest remaining target
             if (triplet.includes(largestTargetSlot) && largestTargetValue > 0) {
-              score += 200; // Very strong bonus
+              score += 300;
             }
 
-            // Bonus for pairing smallest with largest
+            // Bonus for pairing smallest with largest (helps maintain balance)
             if (triplet.includes(smallestTargetSlot) && triplet.includes(largestTargetSlot)) {
-              score += 150;
+              score += 200;
             }
           }
         }
