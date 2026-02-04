@@ -138,55 +138,47 @@ export default function AppWrapper() {
           </div>
         </button>
 
-        {/* Ramadan Card */}
+        {/* Ramadan Card - DISABLED (Coming Soon) */}
         <button
-          onClick={() => setMode('ramadan')}
-          className={`relative p-6 rounded-xl border-2 transition-all duration-300 text-left group ${
-            mode === 'ramadan'
-              ? 'border-indigo-400 shadow-lg scale-105'
-              : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-          }`}
+          disabled
+          className="relative p-6 rounded-xl border-2 border-gray-200 text-left opacity-60 cursor-not-allowed"
           style={{
-            backgroundColor: mode === 'ramadan' ? '#eef2ff' : '#ffffff',
+            backgroundColor: '#f9fafb',
           }}
         >
+          {/* Coming Soon Badge */}
+          <div className="absolute top-2 right-2 bg-indigo-100 text-indigo-700 text-xs font-semibold px-2 py-1 rounded-full">
+            Coming Soon
+          </div>
+
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-3">
               <div
-                className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
-                  mode === 'ramadan' ? 'text-white' : 'text-gray-600 group-hover:text-gray-900'
-                }`}
+                className="w-12 h-12 rounded-xl flex items-center justify-center text-gray-400"
                 style={{
-                  backgroundColor: mode === 'ramadan' ? '#6366f1' : '#f3f4f6',
+                  backgroundColor: '#e5e7eb',
                 }}
               >
                 <Moon className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-bold text-gray-900">Ramadan</h4>
-                <p className="text-xs text-gray-600">8 Shifts Special</p>
+                <h4 className="font-bold text-gray-500">Ramadan</h4>
+                <p className="text-xs text-gray-400">8 Shifts Special</p>
               </div>
             </div>
-            {mode === 'ramadan' && (
-              <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-            )}
           </div>
 
-          <div className="space-y-2 text-sm text-gray-700">
+          <div className="space-y-2 text-sm text-gray-400">
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#6366f1' }}></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
               <span>10 hours per rider</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#6366f1' }}></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
               <span>90% night / 10% day</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#6366f1' }}></span>
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
               <span>8 time slots</span>
             </div>
           </div>
